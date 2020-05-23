@@ -1,4 +1,6 @@
 module Main where
 
+import qualified Console
+
 main :: IO ()
-main = putStrLn "*fun-execution*"
+main = Console.main

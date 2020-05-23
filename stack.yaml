@@ -1,2 +1,6 @@
-#resolver: lts-15.13
 resolver: lts-14.27
+
+extra-deps:
+- HMap-1.3.0
+- git: https://github.com/Nick-Chapman/EarleyM
+  commit: 9725370e63a2611e331bc837c30c9ba79b6e7afd
