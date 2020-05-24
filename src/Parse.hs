@@ -7,8 +7,8 @@ import Prelude hiding (exp, fail, lookup, pred)
 import qualified Data.Char as Char
 import qualified EarleyM as EM(parse,Parsing(..))
 
-import Rep_Lang (Def(..),Exp(..),Var(..))
---import qualified Rep_Lang as Lang
+import Builtin
+import Rep_Ast (Def(..),Exp(..),Var(..),Value(Base))
 
 newtype ParseError = ParseError { unParseError :: String }
 instance Show ParseError where show = unParseError
@@ -59,12 +59,12 @@ lang = do
 
     let formals = parseListSep formal ws1
 
-    let num = fmap ENum digits
+    let num = fmap (ECon . Base . Builtin.Num) digits
     let var = fmap (EVar . Var) ident
 
     let dq = symbol '"'
     let notdq = sat (/= '"')
-    let stringLit = do dq; cs <- many notdq; dq; return $ EStr cs
+    let stringLit = do dq; cs <- many notdq; dq; return $ ECon $ Base $ Builtin.Str cs
 
     let parenthesized p = do symbol '('; ws; x <- p; ws; symbol ')'; return x
 

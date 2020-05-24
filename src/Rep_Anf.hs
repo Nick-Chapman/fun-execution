@@ -2,9 +2,9 @@
 -- A-Normal-form expressions
 module Rep_Anf where
 
-import qualified Rep_Basic as Basic
+import qualified Rep_Ast as Ast
 
-type Var = Basic.Var
+type Var = Ast.Var
 data Exp
 data Value
 data Env

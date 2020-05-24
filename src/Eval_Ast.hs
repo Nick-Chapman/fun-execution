@@ -1,24 +1,39 @@
 
-module Eval_Basic (RuntimeError,evaluate,env0) where
+module Eval_Ast (env0,RuntimeError,evaluate) where
 
 import Control.Monad(ap,liftM)
 import qualified Data.Map.Strict as Map
 
-import Rep_Basic(Var(..),Exp(..),Value(..),Env)
+import Rep_Ast(Var(..),Exp(..),Value(..),Env)
 import qualified Builtin
 
 data RuntimeError = RuntimeError { unRuntimeError :: String }
 instance Show RuntimeError where show = unRuntimeError
+
+prim2value :: Builtin.Prim2 -> Value
+prim2value prim = abs x (ELam y (EPrim2 prim (EVar x) (EVar y)))
+  where
+    abs = Clo Map.empty
+    x = Var "x"
+    y = Var "y"
+
+env0 :: Env
+env0 = Map.fromList
+  [ (Var "+", prim2value Builtin.Add)
+  , (Var "-", prim2value Builtin.Sub)
+  ]
 
 evaluate :: Env -> Exp -> Either RuntimeError Value
 evaluate env exp = runM env (eval exp)
 
 eval :: Exp -> M Value
 eval = \case
-  ENum n -> do
-    return $ Base $ Builtin.Num n
-  EStr s -> do
-    return $ Base $ Builtin.Str s
+  ECon v -> do
+    return $ v
+  EPrim2 prim e1 e2 -> do
+    v1 <- eval e1
+    v2 <- eval e2
+    applyPrim2 prim v1 v2
   EVar x -> do
     Lookup x
   ELam x body -> do
@@ -35,14 +50,15 @@ apply :: Value -> Value -> M Value
 apply = \case
   Clo env x body ->
     \arg -> Restore (Map.insert x arg env) $ eval body
-  Prim2 prim -> \case
-    Base bv -> return $ Prim2_1 prim bv
-    v -> Err $ "cant apply primitive to non-base arg1: " <> show (prim,v)
-  Prim2_1 prim bv1 -> \case
-    Base bv2 -> Base <$> (returnOrError $ Builtin.apply2 prim (bv1,bv2))
-    v2 -> Err $ "cant apply primitive to non-base arg2: " <> show (prim,bv1,v2)
   v ->
     \_ -> Err $ "cant apply non-function: " <> show v
+
+applyPrim2 :: Builtin.Prim2 -> Value -> Value -> M Value
+applyPrim2 prim = \case
+  Clo{} -> \_ -> Err $ "cant apply primitive to arg1-closure: " <> show prim
+  Base bv1 -> \case
+    Clo{} -> Err $ "cant apply primitive to arg2-closure: " <> show (prim,bv1)
+    Base bv2 -> Base <$> (returnOrError $ Builtin.apply2 prim (bv1,bv2))
 
 returnOrError :: Show e => Either e a -> M a
 returnOrError = \case
@@ -73,10 +89,3 @@ runM = loop where
     Restore env m -> loop env m
 
   err = Left . RuntimeError
-
-
-env0 :: Env
-env0 = Map.fromList
-  [ (Var "+", Prim2 Builtin.Add)
-  , (Var "-", Prim2 Builtin.Sub)
-  ]
