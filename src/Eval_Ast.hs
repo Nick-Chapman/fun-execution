@@ -1,5 +1,5 @@
 
-module Eval_Ast (env0,RuntimeError,evaluate) where
+module Eval_Ast (RuntimeError,execute) where
 
 import Control.Monad(ap,liftM)
 import qualified Data.Map.Strict as Map
@@ -10,21 +10,8 @@ import qualified Builtin
 data RuntimeError = RuntimeError { unRuntimeError :: String }
 instance Show RuntimeError where show = unRuntimeError
 
-prim2value :: Builtin.Prim2 -> Value
-prim2value prim = abs x (ELam y (EPrim2 prim (EVar x) (EVar y)))
-  where
-    abs = Clo Map.empty
-    x = Var "x"
-    y = Var "y"
-
-env0 :: Env
-env0 = Map.fromList
-  [ (Var "+", prim2value Builtin.Add)
-  , (Var "-", prim2value Builtin.Sub)
-  ]
-
-evaluate :: Env -> Exp -> Either RuntimeError Value
-evaluate env exp = runM env (eval exp)
+execute :: Exp -> Either RuntimeError Value
+execute exp = runM (eval exp)
 
 eval :: Exp -> M Value
 eval = \case
@@ -77,8 +64,8 @@ data M a where
   Save :: M Env
   Restore :: Env -> M a -> M a
 
-runM :: Env -> M Value -> Either RuntimeError Value
-runM = loop where
+runM :: M Value -> Either RuntimeError Value
+runM = loop Map.empty where
   loop :: Env -> M a -> Either RuntimeError a
   loop env = \case
     Ret x -> return x

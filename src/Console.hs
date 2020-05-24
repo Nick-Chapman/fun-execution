@@ -110,14 +110,14 @@ pep Conf{} put line env = do
 
 eval :: Env -> Exp -> IO (Maybe Value)
 eval env exp = do
-  --putStrLn $ col AN.Magenta ("EXP:" <> show exp)
-  case compile exp of
+  putStrLn $ col AN.Magenta ("EXP:" <> show exp)
+  case compile env exp of
     Left err -> do
       putStrLn $ col AN.Red (show err)
       return Nothing
     Right code -> do
       putStrLn $ col AN.Blue ("CODE:" <> show code)
-      case execute env code of
+      case execute code of
         Left err -> do
           putStrLn $ col AN.Red (show err)
           return Nothing
