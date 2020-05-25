@@ -3,9 +3,15 @@
 module Builtin(BuiltinError,BV(..),Prim1,Prim2(..),apply1,apply2) where
 
 -- The builtins are stratified by arity.
-data BV = Num Int | Str String  deriving Show
+data BV = Num Int | Str String | Bool Bool
 data Prim1
 data Prim2 = Add | Sub deriving Show
+
+instance Show BV where
+  show = \case
+    Num n -> show n
+    Str s -> show s
+    Bool b -> show b
 
 data BuiltinError = BuiltinError { unBuiltinError :: String }
 instance Show BuiltinError where show = unBuiltinError
