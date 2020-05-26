@@ -6,11 +6,11 @@ import Data.Map (Map)
 import qualified Data.Map.Strict as Map
 
 import Rep_Ast as Ast(Exp(..),Var(..))
-import Rep_Anf as Anf(Code(..),Atom(..),Env)
+import Rep_Anf as Anf(Code(..),Atom(..))
 
 -- | compile an expression to (flat)code for a CEK machine
-flatten :: Env -> Exp -> Code
-flatten consoleEnv exp = runM consoleEnv (codifyAs Nothing exp)
+flatten :: Exp -> Code
+flatten exp = runM (codifyAs Nothing exp)
 
 codifyAs :: Maybe Var -> Exp -> M Code
 codifyAs mx = \case
@@ -92,8 +92,8 @@ data M a where
   ModEnv :: (CompileEnv -> CompileEnv) -> M a -> M a
   Lookup :: Var -> M Atom
 
-runM :: Env -> M Code -> Code
-runM consoleEnv m = snd $ loop Map.empty 1 m k0 where
+runM :: M Code -> Code
+runM m = snd $ loop Map.empty 1 m k0 where
   k0 state code = (state,code)
   loop :: CompileEnv -> State -> M a -> (State -> a -> Res) -> Res
   loop env state m k = case m of
@@ -110,11 +110,7 @@ runM consoleEnv m = snd $ loop Map.empty 1 m k0 where
   lookup x env =
     case Map.lookup x env of
       Just atom -> atom
-      Nothing ->
-        case Map.lookup x consoleEnv of
-          Just _v -> AVar x -- ACon v
-          Nothing ->
-            error $ "Trans_Ast2Anf.lookup:"<> show x
+      Nothing -> AVar x
 
 type Res = (State,Code)
 type State = Int

@@ -1,7 +1,7 @@
 
-module Eval_Anf (RuntimeError,evaluate) where
+module Eval_Anf (RuntimeError,Value,Env,evaluate) where
 
-import Rep_Anf(Var(..),Code,Value(..))
+import Rep_Anf(Var(..),Code)
 import qualified Rep_Anf as Anf
 import qualified Builtin
 
@@ -10,6 +10,15 @@ import qualified Data.Map.Strict as Map
 
 data RuntimeError = RuntimeError { unRuntimeError :: String }
 instance Show RuntimeError where show = unRuntimeError
+
+data Value
+  = Base Builtin.BV
+  | Clo Env Var Code
+
+instance Show Value where
+  show = \case
+    Base bv -> show bv
+    Clo{} -> "<closure>"
 
 type M a = Either RuntimeError a
 

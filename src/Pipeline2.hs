@@ -6,9 +6,9 @@ import qualified Data.Map.Strict as Map
 -- pipeline: Ast->Anf
 
 import CheckClosed_Ast (checkInEnv)
-import Eval_Anf(RuntimeError)
+import Eval_Anf(RuntimeError,Value,Env)
 import Parse (parse)
-import Rep_Anf (Code,Value,Env)
+import Rep_Anf (Code)
 import Rep_Ast (Def(..),Exp)
 import Trans_Ast2Anf (flatten)
 import qualified Eval_Anf as Anf
@@ -22,7 +22,7 @@ compile :: Env -> Exp -> Either CompilationError Code
 compile env exp =
   case checkInEnv (Map.keys env) exp of
     Just err -> Left $ CompilationError $ show err
-    Nothing -> Right $ flatten env exp
+    Nothing -> Right $ flatten exp
 
 execute :: Env -> Code -> Either RuntimeError Value
 execute = Anf.evaluate

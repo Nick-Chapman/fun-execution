@@ -1,8 +1,6 @@
 
 -- Flattened (ANF style) code
-module Rep_Anf(Var(..),Atom(..),Code(..),Value(..),Env,indented,pretty) where
-
-import Data.Map.Strict (Map)
+module Rep_Anf(Var(..),Atom(..),Code(..)) where
 
 import qualified Builtin
 import Rep_Ast(Var(..))
@@ -16,17 +14,6 @@ data Code -- flattened expression
   | LetOp Var Builtin.Prim2 (Atom,Atom) Code
   | LetLam Var (Var,Code) Code
   | Branch Atom Code Code
-
-type Env = Map Var Value
-
-data Value
-  = Base Builtin.BV
-  | Clo Env Var Code
-
-instance Show Value where
-  show = \case
-    Base bv -> show bv
-    Clo{} -> "<closure>"
 
 instance Show Atom where show = \case AVar s -> show s; ACon v -> show v
 instance Show Code where show = unlines . pretty
