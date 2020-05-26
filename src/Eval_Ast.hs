@@ -41,6 +41,10 @@ eval = \case
     apply v1 v2
   ELet x rhs body -> do
     eval (EApp (ELam x body) rhs)
+  EIf i t e -> do
+    i <- eval i
+    branch <- ite i t e
+    eval branch
 
 apply :: Value -> Value -> M Value
 apply = \case
@@ -55,6 +59,12 @@ applyPrim2 prim = \case
   Base bv1 -> \case
     Clo{} -> Err $ "cant apply primitive to arg2-closure: " <> show (prim,bv1)
     Base bv2 -> Base <$> (returnOrError $ Builtin.apply2 prim (bv1,bv2))
+
+ite :: Value -> Exp -> Exp -> M Exp
+ite = \case
+  Base (Builtin.Bool True) -> \t _ -> return t
+  Base (Builtin.Bool False) -> \_ e -> return e
+  i -> \_ _ -> Err $ "cant test non-boolean if-then-else condition: " <> show i
 
 returnOrError :: Show e => Either e a -> M a
 returnOrError = \case

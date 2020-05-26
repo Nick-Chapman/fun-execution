@@ -31,6 +31,10 @@ check = \case
   ELet x rhs body -> do
     check rhs
     Extend x $ check body
+  EIf i t e -> do
+    check i
+    check t
+    check e
 
 instance Functor M where fmap = liftM
 instance Applicative M where pure = return; (<*>) = ap

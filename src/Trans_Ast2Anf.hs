@@ -25,7 +25,7 @@ codifyAs mx = \case
     a <- Lookup x
     return $ Return a
   ELam formal body -> do
-    let bodyName = fmap (\x -> Var $ show x ++"-body") mx
+    let bodyName = fmap (suffix "-body") mx
     name <- fresh mx
     body <- ModEnv (Map.insert formal (AVar formal)) $ Reset (codifyAs bodyName body)
     Wrap (LetLam name (formal,body)) (return $ Return $ AVar name)
@@ -37,9 +37,17 @@ codifyAs mx = \case
   ELet x rhs body -> do
     a <- atomizeAs (Just x) $ codifyAs (Just x) rhs
     ModEnv (Map.insert x a) $ codifyAs mx body
+  EIf e1 e2 e3 -> do
+    let thenName = fmap (suffix "-then") mx
+    let elseName = fmap (suffix "-else") mx
+    a1 <- atomize $ codify e1
+    c2 <- Reset (codifyAs thenName e2)
+    c3 <- Reset (codifyAs elseName e3)
+    return $ Branch a1 c2 c3
   where
     codify = codifyAs Nothing
     atomize = atomizeAs Nothing
+    suffix ext (Var base) = Var $ base ++ ext
 
 atomizeAs :: Maybe Var -> M Code -> M Atom
 atomizeAs mx m = do

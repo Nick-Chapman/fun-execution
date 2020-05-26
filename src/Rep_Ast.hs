@@ -20,6 +20,7 @@ data Exp
   | ELam Var Exp
   | EApp Exp Exp
   | ELet Var Exp Exp
+  | EIf Exp Exp Exp
 
 instance Show Exp where
   show = \case
@@ -29,17 +30,28 @@ instance Show Exp where
     ELam x body -> "(\\" ++ show x ++ "." ++ show body ++ ")"
     EApp e1 e2 -> "(" ++ show e1 ++ " " ++ show e2 ++ ")"
     ELet x e1 e2 -> "(let " ++ show x ++ " = " ++ show e1 ++ " in " ++ show e2 ++ ")"
+    EIf i t e -> "(if " ++ show i ++ " then " ++ show t ++ " else " ++ show e ++ ")"
 
 type Env = Map Var Exp
 
-prim2value :: Builtin.Prim2 -> Exp
-prim2value prim = ELam x (ELam y (EPrim2 prim (EVar x) (EVar y)))
+binop :: Builtin.Prim2 -> Exp
+binop prim = ELam x (ELam y (EPrim2 prim (EVar x) (EVar y)))
   where
-    x = Var "xx"
-    y = Var "yy"
+    x = Var "x"
+    y = Var "y"
 
 env0 :: Env
 env0 = Map.fromList
-  [ (Var "+", prim2value Builtin.Add)
-  , (Var "-", prim2value Builtin.Sub)
+  [ (Var "+", binop Builtin.Add)
+  , (Var "-", binop Builtin.Sub)
+  , (Var "*", binop Builtin.Mul)
+  , (Var "==", binop Builtin.EqInt)
+  , (Var "ite", ite)
   ]
+
+ite :: Exp
+ite = ELam i (ELam t (ELam e (EIf (EVar i) (EVar t) (EVar e))))
+  where
+    i = Var "i"
+    t = Var "t"
+    e = Var "e"
