@@ -17,38 +17,53 @@ execute :: Code -> Either RuntimeError Value
 execute = undefined
 -}
 
--- unit pipeline: Ast is Code; compilation is closeOverEnvironment
+-- unit pipeline: Ast is Code; compilation is just to check for unbound identifiers
 {-
-import Close_Ast (UnboundError,closeOverEnvironment)
-import Eval_Ast (RuntimeError)
+import CheckClosed_Ast (checkInEnv)
+import Eval_Ast (RuntimeError,Value,Env)
 import Parse (parse)
-import Rep_Ast as Ast (Value,Env,Exp,Def(..),env0)
-import qualified Eval_Ast as Ast
+import Rep_Ast (Exp,Def(..))
+import qualified Eval_Ast as Ast (evaluate)
+import qualified Rep_Ast as Ast (env0)
 data Code = Code Exp
-instance Show Code where show (Code e) = show e
-type CompilationError = UnboundError
+instance Show Code where show (Code e) = "CODE:" <> show e
+data CompilationError = CompilationError { unCompilationError :: String }
+instance Show CompilationError where show = unCompilationError
 compile :: Env -> Exp -> Either CompilationError Code
-compile env exp = either Left (Right . Code) $ closeOverEnvironment exp env
-execute :: Code -> Either RuntimeError Value
-execute (Code exp) = Ast.execute exp
+compile env exp = maybe (Right $ Code exp) (Left . CompilationError . show) $ checkInEnv (Map.keys env) exp
+execute :: Env -> Code -> Either RuntimeError Value
+execute env (Code exp) = Ast.evaluate env exp
+env0 :: Eval_Ast.Env
+env0 = Map.map eval Ast.env0 where eval = either (error . show) id . Ast.evaluate Map.empty
 -}
+
 
 -- pipeline: Ast->Anf
 
+import CheckClosed_Ast (checkInEnv)
 import Parse (parse)
 import Rep_Ast (Def(..),Exp)
 import Rep_Anf (Code,Value,Env)
-import Trans_Ast2Anf (flatten,flattenV)
-import Eval_Anf (RuntimeError,eval)
+import Trans_Ast2Anf (flatten)
+import Eval_Anf(RuntimeError)
+import qualified Eval_Anf as Anf
 import qualified Rep_Ast as Ast(env0)
 
 env0 :: Env
-env0 = Map.map flattenV Ast.env0
+env0 = Map.map eval Ast.env0
+  where eval = getRight . execute Map.empty . getRight . compile Map.empty
 
-data CompilationError = CE deriving Show -- none yet
+getRight :: Show e => Either e a -> a
+getRight = either (error . show) id
+
+data CompilationError = CompilationError { unCompilationError :: String }
+instance Show CompilationError where show = unCompilationError
 
 compile :: Env -> Exp -> Either CompilationError Code
-compile env exp = Right $ flatten env exp
+compile env exp =
+  case checkInEnv (Map.keys env) exp of
+    Just err -> Left $ CompilationError $ show err
+    Nothing -> Right $ flatten env exp
 
-execute :: Code -> Either RuntimeError Value
-execute = eval
+execute :: Env -> Code -> Either RuntimeError Value
+execute = Anf.evaluate

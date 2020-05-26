@@ -1,5 +1,5 @@
 
-module Eval_Anf (RuntimeError,eval) where
+module Eval_Anf (RuntimeError,evaluate) where
 
 import Rep_Anf(Var(..),Code,Value(..))
 import qualified Rep_Anf as Anf
@@ -19,12 +19,8 @@ type Env     {-q-} = Map Var Value
 data Kont    {-k-} = Kbind Env Var Code Kont | Kdone
 
 -- | execute (flat)code on a CEK machine
-eval :: Code -> M Value
-eval = run . install
-
--- | initialize a machine with the (flat)code to execute
-install :: Code -> Machine
-install c = (c, Map.empty, Kdone)
+evaluate :: Env -> Code -> M Value
+evaluate env code = run (code, env, Kdone)
 
 -- | run a machine unti the final value is calculated
 run :: Machine -> M Value
@@ -77,7 +73,7 @@ branch c2 c3 = \case
 atomic :: Env -> Anf.Atom -> M Value
 atomic q = \case
   Anf.AVar x -> look x q
-  Anf.ACon v -> return v
+  Anf.ACon bv -> return $ Base bv
 
 look :: Var -> Env -> M Value
 look x q = maybe (err $ "runtime-lookup: " ++ show x) Right (Map.lookup x q)

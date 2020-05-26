@@ -1,5 +1,5 @@
 
-module Trans_Ast2Anf(flatten,flattenV) where
+module Trans_Ast2Anf(flatten) where
 
 import Control.Monad(ap,liftM)
 import Data.Map (Map)
@@ -7,39 +7,15 @@ import qualified Data.Map.Strict as Map
 
 import Rep_Ast as Ast(Exp(..),Var(..))
 import Rep_Anf as Anf(Code(..),Atom(..),Env)
-import qualified Rep_Ast as Ast
-import qualified Rep_Anf as Anf
 
 -- | compile an expression to (flat)code for a CEK machine
 flatten :: Env -> Exp -> Code
-flatten consoleEnv exp = flattenE consoleEnv Map.empty exp
-
-flattenE :: Env -> CompileEnv -> Exp -> Code
-flattenE consoleEnv env exp =
-  runM consoleEnv env (codifyAs Nothing exp)
-
-
-flattenV :: Ast.Value -> Anf.Value
-flattenV = \case
-  Ast.Base bv -> Anf.Base bv
-  Ast.Clo env x exp -> do
-    let env' :: Anf.Env = Map.map flattenV env
-    let code = flattenE env' (Map.insert x (AVar x) Map.empty) exp
-    Anf.Clo env' x code
-
-flattenM :: Ast.Value -> M Anf.Value
-flattenM = \case
-  Ast.Base bv -> return $ Anf.Base bv
-  Ast.Clo env x exp -> do
-    let env' :: Anf.Env = Map.map flattenV env
-    code <- ModEnv (\_ -> Map.insert x (AVar x) $ Map.map ACon env') $ codifyAs Nothing exp
-    return $ Anf.Clo env' x code
+flatten consoleEnv exp = runM consoleEnv (codifyAs Nothing exp)
 
 codifyAs :: Maybe Var -> Exp -> M Code
 codifyAs mx = \case
-  ECon v -> do
-    v <- flattenM v
-    return $ Return $ ACon v
+  ECon bv -> do
+    return $ Return $ ACon bv
   EPrim2 op e1 e2 -> do
     a1 <- atomize $ codify e1
     a2 <- atomize $ codify e2
@@ -108,8 +84,8 @@ data M a where
   ModEnv :: (CompileEnv -> CompileEnv) -> M a -> M a
   Lookup :: Var -> M Atom
 
-runM :: Env -> CompileEnv -> M Code -> Code
-runM consoleEnv env m = snd $ loop env 1 m k0 where
+runM :: Env -> M Code -> Code
+runM consoleEnv m = snd $ loop Map.empty 1 m k0 where
   k0 state code = (state,code)
   loop :: CompileEnv -> State -> M a -> (State -> a -> Res) -> Res
   loop env state m k = case m of
@@ -128,7 +104,7 @@ runM consoleEnv env m = snd $ loop env 1 m k0 where
       Just atom -> atom
       Nothing ->
         case Map.lookup x consoleEnv of
-          Just v -> ACon v
+          Just _v -> AVar x -- ACon v
           Nothing ->
             error $ "Trans_Ast2Anf.lookup:"<> show x
 

@@ -1,22 +1,31 @@
 
-module Eval_Ast (RuntimeError,execute) where
+module Eval_Ast (RuntimeError,Value,Env,evaluate) where
 
 import Control.Monad(ap,liftM)
+import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 
-import Rep_Ast(Var(..),Exp(..),Value(..),Env)
+import Rep_Ast(Var(..),Exp(..))
 import qualified Builtin
 
-data RuntimeError = RuntimeError { unRuntimeError :: String }
-instance Show RuntimeError where show = unRuntimeError
+data Value = Base Builtin.BV | Clo Env Var Exp
+type Env = Map Var Value
 
-execute :: Exp -> Either RuntimeError Value
-execute exp = runM (eval exp)
+instance Show Value where
+  show = \case
+    Base bv -> show bv
+    Clo{} -> "<closure>"
+
+data RuntimeError = RuntimeError { unRuntimeError :: String }
+instance Show RuntimeError where show = ("runtime-error: "<>) . unRuntimeError
+
+evaluate :: Env -> Exp -> Either RuntimeError Value
+evaluate env exp = runM env (eval exp)
 
 eval :: Exp -> M Value
 eval = \case
   ECon v -> do
-    return $ v
+    return $ Base v
   EPrim2 prim e1 e2 -> do
     v1 <- eval e1
     v2 <- eval e2
@@ -64,8 +73,8 @@ data M a where
   Save :: M Env
   Restore :: Env -> M a -> M a
 
-runM :: M Value -> Either RuntimeError Value
-runM = loop Map.empty where
+runM :: Env -> M Value -> Either RuntimeError Value
+runM env = loop env where
   loop :: Env -> M a -> Either RuntimeError a
   loop env = \case
     Ret x -> return x

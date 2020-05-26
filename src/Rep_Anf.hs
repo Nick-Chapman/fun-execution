@@ -4,16 +4,16 @@ module Rep_Anf(Var(..),Atom(..),Code(..),Value(..),Env,indented,pretty) where
 
 import Data.Map.Strict (Map)
 
-import Builtin
+import qualified Builtin
 import Rep_Ast(Var(..))
 
-data Atom = AVar Var | ACon Value
+data Atom = AVar Var | ACon Builtin.BV
 
 data Code -- flattened expression
   = Return Atom
   | Tail Atom Atom
   | LetCode Var Code Code
-  | LetOp Var Prim2 (Atom,Atom) Code
+  | LetOp Var Builtin.Prim2 (Atom,Atom) Code
   | LetLam Var (Var,Code) Code
   | Branch Atom Code Code
 
@@ -27,7 +27,6 @@ instance Show Value where
   show = \case
     Base bv -> show bv
     Clo{} -> "<closure>"
---    Clo _ x exp -> "<closure:\\" ++ show x ++ "." ++ show exp ++ ">"
 
 instance Show Atom where show = \case AVar s -> show s; ACon v -> show v
 instance Show Code where show = unlines . pretty

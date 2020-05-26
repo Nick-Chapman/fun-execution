@@ -9,7 +9,6 @@ import qualified System.Console.Haskeline as HL
 import qualified System.Console.Haskeline.History as HL
 
 import Pipeline(Env,Def(..),Exp,Value,parse,compile,execute,env0)
-import qualified Rep_Anf as Anf
 
 main :: IO ()
 main = do
@@ -117,9 +116,8 @@ eval env exp = do
       putStrLn $ col AN.Red (show err)
       return Nothing
     Right code -> do
-      --putStrLn $ col AN.Blue ("CODE:" <> show code)
-      putStrLn $ col AN.Blue (unlines $ Anf.indented "CODE:" (Anf.pretty code))
-      case execute code of
+      putStrLn $ col AN.Blue (show code)
+      case execute env code of
         Left err -> do
           putStrLn $ col AN.Red (show err)
           return Nothing

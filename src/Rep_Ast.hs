@@ -1,8 +1,8 @@
 
 -- The language as it comes out of the Parser.
-module Rep_Ast (Var(..),Exp(..),Def(..),Value(..),Env,env0) where
+module Rep_Ast (Var(..),Exp(..),Def(..),Env,env0) where
 
-import Builtin
+import qualified Builtin
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 
@@ -11,21 +11,15 @@ instance Show Var where show = unVar
 
 data Def = Def Var Exp deriving (Show)
 
--- Expressions... Embedded values; Saturated prim-ops; TODO: Multi Lam/App
+-- Expressions... Saturated prim-ops; TODO: Multi Lam/App
 
 data Exp
-  = ECon Value
-  | EPrim2 Prim2 Exp Exp
+  = ECon Builtin.BV
+  | EPrim2 Builtin.Prim2 Exp Exp
   | EVar Var
   | ELam Var Exp
   | EApp Exp Exp
   | ELet Var Exp Exp
-
-type Env = Map Var Value
-
-data Value
-  = Base BV
-  | Clo Env Var Exp
 
 instance Show Exp where
   show = \case
@@ -36,18 +30,11 @@ instance Show Exp where
     EApp e1 e2 -> "(" ++ show e1 ++ " " ++ show e2 ++ ")"
     ELet x e1 e2 -> "(let " ++ show x ++ " = " ++ show e1 ++ " in " ++ show e2 ++ ")"
 
+type Env = Map Var Exp
 
-instance Show Value where
-  show = \case
-    Base bv -> show bv
-    --Clo{} -> "<clo>"
-    Clo _ x exp -> "<clo:\\" ++ show x ++ "." ++ show exp ++ ">"
-
-
-prim2value :: Builtin.Prim2 -> Value
-prim2value prim = abs x (ELam y (EPrim2 prim (EVar x) (EVar y)))
+prim2value :: Builtin.Prim2 -> Exp
+prim2value prim = ELam x (ELam y (EPrim2 prim (EVar x) (EVar y)))
   where
-    abs = Clo Map.empty
     x = Var "xx"
     y = Var "yy"
 
@@ -56,4 +43,3 @@ env0 = Map.fromList
   [ (Var "+", prim2value Builtin.Add)
   , (Var "-", prim2value Builtin.Sub)
   ]
-
