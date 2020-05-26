@@ -21,7 +21,7 @@ parse s =
       Right exp -> return exp
 
 keywords :: [String] -- which are not allowed as identifiers
-keywords = ["let","in"]
+keywords = ["let","in","if","then","else"]
 --keywords = []
 
 lang :: Lang Char (Gram (Maybe (Either Def Exp)))
@@ -107,6 +107,15 @@ lang = do
             ws; body <- exp
             return $ ELet x defined body
 
+    let ifThenElseSyntax = do
+            keyword "if"
+            ws; i <- exp
+            ws; keyword "then"
+            ws; t <- exp
+            ws; keyword "else"
+            ws; e <- exp
+            return $ EIf i t e
+
     let open = alts [num,var] -- requiring whitespace to avoid juxta-collision
     let closed = alts [parenthesized exp, stringLit]
 
@@ -125,7 +134,7 @@ lang = do
     produce opl' $ makeBinop (alts [open,closed,app,opl]) (alts [open,closed,app])
     let opl_lam  = makeBinop (alts [open,closed,app,opl]) lam
 
-    produce exp' $ alts [open,closed,lam,app,opl, app_lam, opl_lam, letSyntax]
+    produce exp' $ alts [open,closed,lam,app,opl, app_lam, opl_lam, letSyntax, ifThenElseSyntax]
 
     let def = do
             name <- formal
