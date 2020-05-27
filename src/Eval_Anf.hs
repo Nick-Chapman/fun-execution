@@ -11,7 +11,7 @@ import qualified Data.Map.Strict as Map
 
 data Value
   = Base Builtin.BV
-  | Clo Env Var Code
+  | Clo Env [Var] Code
 
 instance Show Value where
   show = \case
@@ -36,11 +36,9 @@ run (c,q,k) = case c of
     v <- atomic q a
     ret v k
 
-  Anf.Tail f [a] -> do
-    func <- atomic q f
-    arg <- atomic q a
-    enter func arg k
-  Anf.Tail{} -> undefined
+  Anf.Tail func args -> do
+    func <- atomic q func
+    enter q func args k
 
   Anf.LetCode x rhs body -> do
     k <- pure $ Kbind q x body k
@@ -53,10 +51,9 @@ run (c,q,k) = case c of
     q <- pure $ insert x v q
     run (c,q,k)
 
-  Anf.LetLam x ([fx],fc) c -> do
-    q <- pure $ insert x (Clo q fx fc) q
+  Anf.LetLam x (fxs,fc) c -> do
+    q <- pure $ insert x (Clo q fxs fc) q
     run (c,q,k)
-  Anf.LetLam{} -> undefined
 
   Anf.Branch a1 c2 c3 -> do
     v <- atomic q a1
@@ -68,10 +65,37 @@ ret v = \case
   Kdone -> return v
   Kbind q x c k -> run (c,q',k) where q' = insert x v q
 
-enter :: Value -> Value -> Kont -> M Value
-enter func arg k = case func of
+enter :: Env ->  Value -> [Anf.Atom] -> Kont -> M Value
+enter q0 func args0 k = case func of
   Base{} -> err "cant enter a non-function"
-  Clo q x body -> run (body, q', k) where q' = insert x arg q
+
+  Clo q xs body
+
+    | arity == n -> do
+        args <- mapM (atomic q0) args0
+        let q' = Map.union (Map.fromList (zip xs args)) q
+        run (body, q', k)
+
+    | arity < n -> do
+        let (myArgs0,overArgs) = splitAt arity args0
+        let k' = do
+              let x = Var "someFunc"
+              let code = Anf.Tail (Anf.AVar x) overArgs
+              Kbind q0 x code k
+        myArgs <- mapM (atomic q0) myArgs0
+        let q' = Map.union (Map.fromList (zip xs myArgs)) q
+        run (body, q', k')
+
+    | otherwise -> do
+        args <- mapM (atomic q0) args0
+        let (ys,zs) = splitAt n xs
+        let q' = Map.union (Map.fromList (zip ys args)) q
+        ret (Clo q' zs body) k
+
+    where
+      arity = length xs
+      n = length args0
+
 
 branch :: Code -> Code -> Value -> M Code
 branch c2 c3 = \case
