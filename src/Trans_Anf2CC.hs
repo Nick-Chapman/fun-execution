@@ -39,7 +39,7 @@ convertAnf = \case
     fvs <- freeVarList (xs,body)
     let arity = length xs
     let locations = [ (v,LocFree i) | (v,i) <- zip fvs [0..] ]
-    freeBody <- Extend [Var "_self"] $ mapM Lookup fvs
+    freeBody <- Extend [Var "_self"] $ mapM lookupLocal fvs
     body <- Reset locations $ Extend xs $ convertAnf body
     code <- Extend [y] $ convertAnf code
     return $ LetClose {freeBody,arity,body,code}
@@ -49,7 +49,7 @@ convertAnf = \case
     fvs <- freeVarList (xs,body)
     let arity = length xs
     let locations = [ (v,LocFree i) | (v,i) <- zip fvs [0..] ]
-    freeBody <- Extend [f] $ mapM Lookup fvs
+    freeBody <- Extend [f] $ mapM lookupLocal fvs
     body <- Reset locations $ Extend xs $ convertAnf body
     code <- Extend [f] $ convertAnf code
     return $ LetClose {freeBody,arity,body,code}
@@ -63,24 +63,35 @@ convertAnf = \case
   Anf.LetCode y rhs follow -> do
     fvs <- freeVarList ([y],follow)
     let locations = [ (v,LocFree i) | (v,i) <- zip fvs [0..] ]
-    freeFollow <- mapM Lookup fvs
+    freeFollow <- mapM lookupLocal fvs
     rhs <- convertAnf rhs
     follow <- Reset locations $ Extend [y] $ convertAnf follow
     return $ LetContinue {freeFollow,rhs,follow}
+
+lookupLocal :: Var -> M Loc
+lookupLocal x = do
+  Lookup x >>= \case
+    Just loc -> return loc
+    Nothing -> error $ "compile-time-lookup: " ++ show x
 
 convertAtom :: Anf.Atom -> M Atom
 convertAtom = \case
   Anf.ACon bv -> return $ ACon $ Base bv
   Anf.AVar x -> do
-    topEnv <- TopEnv
-    case Map.lookup x topEnv of
-      Just v -> return $ ACon v
-      Nothing -> ALoc <$> Lookup x
+    Lookup x >>= \case
+      Just loc -> return $ ALoc loc
+      Nothing -> do
+        topEnv <- TopEnv
+        case Map.lookup x topEnv of
+          Just v -> return $ ACon v
+          Nothing -> error $ "compile-time-lookup: " ++ show x
 
 freeVarList :: ([Var],Anf.Code) -> M [Var]
 freeVarList (bound,code) = do
-  bound2 <- Map.keys <$> TopEnv
-  return $ Set.toList $ fvsBinding (bound++bound2,code)
+  global <- GlobalVars
+  local <- LocalVars
+  let nono = Set.fromList global \\ Set.fromList local
+  return $ Set.toList $ (fvsBinding (bound,code) \\ nono)
 
 fvsBinding :: ([Var],Anf.Code) -> Set Var
 fvsBinding (vars,code) = fvsCode code \\ Set.fromList vars
@@ -109,7 +120,9 @@ data M a where
   Ret :: a -> M a
   Bind :: M a -> (a -> M b) -> M b
   TopEnv :: M (Map Var Value)
-  Lookup :: Var -> M Loc
+  GlobalVars :: M [Var]
+  LocalVars :: M [Var]
+  Lookup :: Var -> M (Maybe Loc)
   Extend :: [Var] -> M a -> M a
   Reset :: [(Var,Loc)] -> M a -> M a
 
@@ -121,10 +134,9 @@ runM topEnv = loop 0 Map.empty where
     Bind m f -> loop d env (f (loop d env m))
     Reset env m -> loop 0 (Map.fromList env) m
     TopEnv -> topEnv
-    Lookup x ->
-      case Map.lookup x env of
-        Just loc -> rel d loc
-        Nothing -> error $ "compile-time-lookup: " ++ show (x,env)
+    GlobalVars -> Map.keys topEnv
+    LocalVars -> Map.keys env
+    Lookup x -> rel d <$> Map.lookup x env
     Extend xs m -> do
       let env' = Map.fromList [ (x,LocArg i) | (x,i) <- zip (reverse xs) [d..] ]
       loop (d + length xs) (Map.union env' env) m

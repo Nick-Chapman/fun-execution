@@ -39,6 +39,7 @@ lang = do
     let alpha = sat Char.isAlpha
     let numer = sat Char.isDigit
     let prime = sat (== '\'')
+    let under = sat (== '_')
     let digit = do c <- numer; return (digitOfChar c)
     let space = skip (sat Char.isSpace)
 
@@ -46,21 +47,16 @@ lang = do
         do n <- digits; d <- digit; return (10 * n + d),
         digit]
 
-    let ident0 = do x <- alpha; xs <- many (alts [alpha,numer,prime]); return (x : xs)
-    let ident = mfilter (`notElem` keywords) ident0
+    let ident0 = do x <- alpha; xs <- many (alts [alpha,numer,prime,under]); return (x : xs)
+    let ident = Var <$> mfilter (`notElem` keywords) ident0
 
     let keyword string = mapM_ symbol string
 
     let ws = skipWhile space -- white*
     let ws1 = do space; ws -- white+
 
-    let underscore = do symbol '_'; return "_"
-    let formal = Var <$> alts [ident,underscore]
-
-    let formals = parseListSep formal ws1
-
     let num = fmap (ECon . Builtin.Num) digits
-    let var = fmap (EVar . Var) ident
+    let var = fmap EVar ident
 
     let dq = symbol '"'
     let notdq = sat (/= '"')
@@ -80,11 +76,18 @@ lang = do
             b <- right
             return (f a b)
 
+    let infixOps = [ ".", "%", "+", "-", "*", "^", ">", "<", ">=", "<=", "==", "===", "&&", "||", "++" ]
+
     let mkBinOp c = mkBin (\x y -> EApp (EApp (EVar (Var c)) x) y) c
-
-    let infixOps = [ "+", "-", "*", "^", ">", "<", ">=", "<=", "==", "===" ]
-
     let makeBinop a b = alts (map (\s -> mkBinOp s a b) infixOps)
+
+    let infixedOpAsIdent = alts [ do keyword s; return (Var s) | s <- infixOps ]
+    let nonInfixedUseOfInfixOp = do symbol '('; ws; x <- infixedOpAsIdent; symbol ')'; return x
+
+    let underscore = do symbol '_'; return $ Var "_"
+
+    let formal = alts [ident,underscore,nonInfixedUseOfInfixOp]
+    let formals = parseListSep formal ws1
 
     let mkLam exp = do
             symbol '\\'
@@ -117,7 +120,7 @@ lang = do
             return $ EIf i t e
 
     let open = alts [num,var] -- requiring whitespace to avoid juxta-collision
-    let closed = alts [parenthesized exp, stringLit]
+    let closed = alts [parenthesized exp, stringLit, EVar <$> nonInfixedUseOfInfixOp]
 
     -- application: juxta position; but whitespace is required for open@open
     (app',app) <- declare "app"

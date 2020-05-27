@@ -45,6 +45,9 @@ env0 = Map.fromList
   [ (Var "+", binop Builtin.Add)
   , (Var "-", binop Builtin.Sub)
   , (Var "*", binop Builtin.Mul)
+  , (Var "%", binop Builtin.ModInt)
   , (Var "==", binop Builtin.EqInt)
   , (Var "<", binop Builtin.LessInt)
+  , (Var "true", ECon $ Builtin.Bool True)
+  , (Var "false", ECon $ Builtin.Bool False)
   ]

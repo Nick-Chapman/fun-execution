@@ -5,7 +5,7 @@ module Builtin(BuiltinError,BV(..),Prim1,Prim2(..),apply1,apply2) where
 -- The builtins are stratified by arity.
 data BV = Num Int | Str String | Bool Bool
 data Prim1
-data Prim2 = Add | Sub | Mul | EqInt | LessInt deriving (Eq,Ord,Show)
+data Prim2 = Add | Sub | Mul | ModInt | EqInt | LessInt deriving (Eq,Ord,Show)
 
 instance Show BV where
   show = \case
@@ -33,6 +33,10 @@ apply2 = \case
   Mul -> \case
     (Num n1, Num n2) -> Right (Num (n1*n2))
     vv -> Left $ BuiltinError $ "cant multiply non-numbers: " <> show vv
+
+  ModInt -> \case
+    (Num n1, Num n2) -> Right (Num (n1 `mod` n2))
+    vv -> Left $ BuiltinError $ "cant modulus non-numbers: " <> show vv
 
   EqInt -> \case
     (Num n1, Num n2) -> Right (Bool (n1 == n2))
