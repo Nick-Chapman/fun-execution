@@ -141,7 +141,7 @@ countMicro :: Counts -> Micro -> Counts
 countMicro (Counts mm) cl = Counts (Map.insertWith (+) cl 1 mm)
 
 data Micro
-  = DoReturn
+  = DoReturn -- TODO: why count? Always 1+ DoPushContinuation ?
   | DoEnter
   | DoPushContinuation
   | DoPushOverApp

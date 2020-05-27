@@ -6,7 +6,7 @@ import qualified Data.Map.Strict as Map
 -- trivial pipeline: Ast is Code; compilation is just to check for unbound identifiers
 
 import CheckClosed_Ast (checkInEnv)
-import Eval_Ast (RuntimeError,Value,Env)
+import Eval_Ast (Value,Env)
 import Parse (parse)
 import Rep_Ast (Exp,Def(..))
 import qualified Eval_Ast as Ast (evaluate)
@@ -24,14 +24,11 @@ compile env exp =
     Just err -> Left $ CompilationError $ show err
     Nothing -> Right (Code exp)
 
-execute :: Env -> Code -> Either RuntimeError Value
-execute env (Code exp) = Ast.evaluate env exp
+execute :: Env -> Code -> (Value,Instrumentation)
+execute env (Code exp) = (Ast.evaluate env exp, ())
 
 env0 :: Env
 env0 = Map.map eval Ast.env0 where
-  eval = getRight . Ast.evaluate Map.empty
-
-getRight :: Show e => Either e a -> a
-getRight = either (error . show) id
+  eval = fst . execute Map.empty . Code
 
 type Instrumentation = ()

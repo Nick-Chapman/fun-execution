@@ -6,7 +6,6 @@ import qualified Data.Map.Strict as Map
 -- Pipeline: Ast -> Anf -> ClosureConverted
 
 import CheckClosed_Ast (checkInEnv)
-import Eval_Anf (RuntimeError)
 import Eval_ClosureConverted (Value,Instrumentation)
 import Parse (parse)
 import Rep_Ast (Def(..),Exp)
@@ -25,12 +24,12 @@ compile env exp =
     Just err -> Left $ CompilationError $ show err
     Nothing -> Right $ convert env $ flatten exp
 
-execute :: Env -> Code -> Either RuntimeError (Value,Instrumentation)
-execute _ = Right . CC.execute
+execute :: Env -> Code -> (Value,Instrumentation)
+execute _ = CC.execute
 
 env0 :: Env
 env0 = Map.map eval Ast.env0 where
-  eval = fst . getRight . execute Map.empty . getRight . compile Map.empty
+  eval = fst . execute Map.empty . getRight . compile Map.empty
 
 getRight :: Show e => Either e a -> a
 getRight = either (error . show) id

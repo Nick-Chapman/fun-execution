@@ -119,13 +119,7 @@ eval env exp = do
       return Nothing
     Right code -> do
       putStrLn $ col AN.Blue (show code)
-      case execute env code of
-        Left err -> do
-          putStrLn $ col AN.Red (show err)
-          return Nothing
-        Right vi -> do
-          return $ Just vi
-
+      return $ Just $ execute env code
 
 col :: AN.Color -> String -> String
 col c s =

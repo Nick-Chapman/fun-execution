@@ -1,15 +1,13 @@
 
-module Eval_Anf (RuntimeError,Value,Env,evaluate) where
+module Eval_Anf (Value,Env,evaluate) where
 
+import Control.Monad.Identity (Identity(..))
 import Rep_Anf(Var(..),Code)
 import qualified Rep_Anf as Anf
 import qualified Builtin
 
 import Data.Map (Map,insert)
 import qualified Data.Map.Strict as Map
-
-data RuntimeError = RuntimeError { unRuntimeError :: String }
-instance Show RuntimeError where show = unRuntimeError
 
 data Value
   = Base Builtin.BV
@@ -20,7 +18,7 @@ instance Show Value where
     Base bv -> show bv
     Clo{} -> "<closure>"
 
-type M a = Either RuntimeError a
+type M a = Identity a
 
 type Machine {-m-} = (Control,Env,Kont)
 type Control {-c-} = Code
@@ -28,8 +26,8 @@ type Env     {-q-} = Map Var Value
 data Kont    {-k-} = Kbind Env Var Code Kont | Kdone
 
 -- | execute (flat)code on a CEK machine
-evaluate :: Env -> Code -> M Value
-evaluate env code = run (code, env, Kdone)
+evaluate :: Env -> Code -> Value
+evaluate env code = runIdentity $ run (code, env, Kdone)
 
 -- | run a machine unti the final value is calculated
 run :: Machine -> M Value
@@ -65,7 +63,7 @@ run (c,q,k) = case c of
 
 ret :: Value -> Kont -> M Value
 ret v = \case
-  Kdone -> Right v
+  Kdone -> return v
   Kbind q x c k -> run (c,q',k) where q' = insert x v q
 
 enter :: Value -> Value -> Kont -> M Value
@@ -85,7 +83,7 @@ atomic q = \case
   Anf.ACon bv -> return $ Base bv
 
 look :: Var -> Env -> M Value
-look x q = maybe (err $ "runtime-lookup: " ++ show x) Right (Map.lookup x q)
+look x q = maybe (err $ "runtime-lookup: " ++ show x) return (Map.lookup x q)
 
 doOp :: Builtin.Prim2 -> Value -> Value -> M Value
 doOp prim = \case
@@ -100,4 +98,4 @@ returnOrError = \case
   Right a -> return a
 
 err :: String -> M a
-err = Left . RuntimeError
+err msg = error $ "runtime-error: " ++ msg

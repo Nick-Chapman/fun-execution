@@ -1,5 +1,5 @@
 
-module Eval_Ast (RuntimeError,Value,Env,evaluate) where
+module Eval_Ast (Value,Env,evaluate) where
 
 import Control.Monad(ap,liftM)
 import Data.Map.Strict (Map)
@@ -16,10 +16,7 @@ instance Show Value where
     Base bv -> show bv
     Clo{} -> "<closure>"
 
-data RuntimeError = RuntimeError { unRuntimeError :: String }
-instance Show RuntimeError where show = ("runtime-error: "<>) . unRuntimeError
-
-evaluate :: Env -> Exp -> Either RuntimeError Value
+evaluate :: Env -> Exp -> Value
 evaluate env exp = runM env (eval exp)
 
 eval :: Exp -> M Value
@@ -83,15 +80,16 @@ data M a where
   Save :: M Env
   Restore :: Env -> M a -> M a
 
-runM :: Env -> M Value -> Either RuntimeError Value
+runM :: Env -> M Value -> Value
 runM env = loop env where
-  loop :: Env -> M a -> Either RuntimeError a
+  loop :: Env -> M a -> a
   loop env = \case
-    Ret x -> return x
-    Bind m f -> do v <- loop env m; loop env (f v)
+    Ret x -> x
+    Bind m f -> loop env (f (loop env m))
     Err msg -> err msg
-    Lookup x -> maybe (err $ "lookup:" <> show x) Right $ Map.lookup x env
-    Save -> return env
+    Lookup x -> maybe (err $ "lookup:" <> show x) id $ Map.lookup x env
+    Save -> env
     Restore env m -> loop env m
 
-  err = Left . RuntimeError
+  err msg = error $ "runtime-error: " ++ msg
+
