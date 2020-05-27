@@ -18,6 +18,7 @@ dependencies:
 - EarleyM
 
 default-extensions:
+- DuplicateRecordFields
 - GADTs
 - GeneralizedNewtypeDeriving
 - InstanceSigs

@@ -1,10 +1,64 @@
 
 -- Closure converted expressions
-module Rep_ClosureConverted where
+module Rep_ClosureConverted (Loc(..),Atom(..),Code(..),Value(..)) where
 
-import qualified Rep_Anf as Anf
+import qualified Builtin
 
-type Var = Anf.Var
-data Exp
+data Loc = LocArg Int | LocFree Int
+
+data Atom = ALoc Loc | ACon Value
+
+data Code
+  = Return Atom
+  | Tail Atom [Atom]
+  | LetContinue { freeFollow :: [Loc], rhs :: Code, follow :: Code }
+  | LetOp Builtin.Prim2 (Atom,Atom) Code
+  | LetClose { freeBody :: [Loc], arity :: Int, body :: Code, code :: Code }
+  | Branch Atom Code Code
+
 data Value
-data Env
+  = Base Builtin.BV
+  | Clo {fvs :: [Value], arity :: Int, body :: Code }
+
+instance Show Value where
+  show = \case
+    Base bv -> show bv
+    Clo{} -> "<closure>"
+
+----------------------------------------------------------------------
+-- pretty print CC code
+
+instance Show Loc where
+  show = \case
+    LocArg n -> "*" ++ show n
+    LocFree n -> "~" ++ show n
+
+instance Show Atom where show = \case ALoc x -> show x; ACon v -> show v
+instance Show Code where show = unlines . pretty
+
+pretty :: Code -> [String]
+pretty = \case
+  Return a ->
+    ["return: " ++ show a]
+  Tail func args ->
+    ["tail: " ++ show func ++ " " ++ show args]
+  LetContinue{freeFollow,rhs,follow} ->
+    indented ("push-k: " ++ show freeFollow ++  " ->") (pretty follow)
+    ++ pretty rhs
+  LetOp op (a1,a2) code ->
+    ["let-op: " ++ show (op,a1,a2)]
+    ++ pretty code
+  LetClose{freeBody,arity,body,code} ->
+    indented ("let-close: " ++ show freeBody ++ " \\" ++ show arity ++ ".") (pretty body)
+    ++ pretty code
+  Branch a1 c2 c3 ->
+    ["if " ++ show a1]
+    ++ indented "then" (pretty c2)
+    ++ indented "else" (pretty c3)
+
+indented :: String -> [String] -> [String]
+indented hang = \case
+  [] -> error "indented, no body"
+  [oneLine] -> [hang ++ " " ++ oneLine]
+  lines -> [hang] ++ ["  " ++ line | line <- lines]
+

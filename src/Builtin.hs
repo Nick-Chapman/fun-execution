@@ -5,7 +5,7 @@ module Builtin(BuiltinError,BV(..),Prim1,Prim2(..),apply1,apply2) where
 -- The builtins are stratified by arity.
 data BV = Num Int | Str String | Bool Bool
 data Prim1
-data Prim2 = Add | Sub | Mul | EqInt deriving Show
+data Prim2 = Add | Sub | Mul | EqInt deriving (Eq,Ord,Show)
 
 instance Show BV where
   show = \case
