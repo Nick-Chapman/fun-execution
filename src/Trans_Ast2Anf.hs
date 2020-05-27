@@ -31,9 +31,9 @@ codifyAs mx = \case
     body <- ModEnv mod $ Reset (codifyAs bodyName body)
     Wrap (LetLam name (formals,body)) (return $ Return $ AVar name)
   EApp func args -> do
-    aFunc <- atomize $ Reset (codify func) -- why reset?
-    --aArg <- atomize $ Reset (codify arg)
-    aArgs <- forM args $ (atomize . codify)
+    -- These Reset cause the generation of more efficient `early push-k' code!
+    aFunc <- atomize $ Reset (codify func)
+    aArgs <- forM args $ (atomize . Reset . codify)
     return $ Tail aFunc aArgs
   ELet x rhs body -> do
     a <- atomizeAs (Just x) $ codifyAs (Just x) rhs
@@ -41,7 +41,7 @@ codifyAs mx = \case
   EIf e1 e2 e3 -> do
     let thenName = fmap (suffix "-then") mx
     let elseName = fmap (suffix "-else") mx
-    a1 <- atomize $ codify e1
+    a1 <- atomize $ Reset $ codify e1
     c2 <- Reset (codifyAs thenName e2)
     c3 <- Reset (codifyAs elseName e3)
     return $ Branch a1 c2 c3

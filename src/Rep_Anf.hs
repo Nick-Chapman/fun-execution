@@ -23,6 +23,7 @@ pretty :: Code -> [String]
 pretty = \case
   Return a -> ["return: " ++ show a]
   Tail xf a -> ["tail: " ++ show xf ++ " " ++ show a]
+  --LetCode x rhs body -> indented ("let " ++ show x ++ " =") (pretty rhs) ++ pretty body
   LetCode x rhs body -> indented ("push: " ++ show x ++  " ->") (pretty body) ++ pretty rhs
   LetOp x op (a1,a2) c -> indented ("let " ++ show x ++ " =") [show (op,a1,a2)] ++ pretty c
   LetLam y (x,body) c -> indented ("let " ++ show y ++ " = \\" ++ show x ++ ".") (pretty body) ++ pretty c
