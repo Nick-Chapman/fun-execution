@@ -8,7 +8,7 @@ import qualified Data.Char as Char
 import qualified EarleyM as EM(parse,Parsing(..))
 
 import Builtin
-import Rep_Ast (Def(..),Exp(..),Var(..))
+import Rep_Ast (Def(..),Exp(..),Var(..),mkELam,mkEApp)
 
 newtype ParseError = ParseError { unParseError :: String }
 instance Show ParseError where show = unParseError
@@ -68,7 +68,7 @@ lang = do
             e1 <- p1
             sep::Gram()
             e2 <- p2;
-            return $ EApp e1 e2
+            return $ mkEApp e1 e2
 
     let mkBin f c left right = do
             a <- left
@@ -78,7 +78,7 @@ lang = do
 
     let infixOps = [ ".", "%", "+", "-", "*", "^", ">", "<", ">=", "<=", "==", "===", "&&", "||", "++" ]
 
-    let mkBinOp c = mkBin (\x y -> EApp (EApp (EVar (Var c)) x) y) c
+    let mkBinOp c = mkBin (\x y -> mkEApp (mkEApp (EVar (Var c)) x) y) c
     let makeBinop a b = alts (map (\s -> mkBinOp s a b) infixOps)
 
     let infixedOpAsIdent = alts [ do keyword s; return (Var s) | s <- infixOps ]
@@ -95,7 +95,7 @@ lang = do
             ws; alts [symbol '.', do symbol '-'; symbol '>']
             ws;
             e <- exp
-            return $ foldr ELam e xs
+            return $ foldr mkELam e xs
 
     (exp',exp) <- declare "exp"
 
@@ -144,7 +144,7 @@ lang = do
             args <- many $ do ws1; formal
             ws; symbol '='
             ws; body <- exp
-            return $ Def name (foldr ELam body args)
+            return $ Def name (foldr mkELam body args)
 
     let top = alts
           [ do d <- def; return $ Left d

@@ -1,6 +1,6 @@
 
 -- The language as it comes out of the Parser.
-module Rep_Ast (Var(..),Exp(..),Def(..),Env,env0) where
+module Rep_Ast (Var(..),Exp(..),mkELam,mkEApp,Def(..),Env,env0) where
 
 import qualified Builtin
 import Data.Map.Strict (Map)
@@ -17,8 +17,8 @@ data Exp
   = ECon Builtin.BV
   | EPrim2 Builtin.Prim2 Exp Exp
   | EVar Var
-  | ELam Var Exp
-  | EApp Exp Exp
+  | ELam [Var] Exp
+  | EApp Exp [Exp]
   | ELet Var Exp Exp
   | EIf Exp Exp Exp
 
@@ -35,7 +35,7 @@ instance Show Exp where
 type Env = Map Var Exp
 
 binop :: Builtin.Prim2 -> Exp
-binop prim = ELam x (ELam y (EPrim2 prim (EVar x) (EVar y)))
+binop prim = mkELam x (mkELam y (EPrim2 prim (EVar x) (EVar y)))
   where
     x = Var "x"
     y = Var "y"
@@ -51,3 +51,19 @@ env0 = Map.fromList
   , (Var "true", ECon $ Builtin.Bool True)
   , (Var "false", ECon $ Builtin.Bool False)
   ]
+
+
+-- smart constructors
+doMultiLam,doMultiApp :: Bool
+doMultiLam = True
+doMultiApp = True
+
+mkELam :: Var -> Exp -> Exp
+mkELam x = \case
+  ELam xs exp | doMultiLam -> ELam (x:xs) exp
+  exp -> ELam [x] exp
+
+mkEApp :: Exp -> Exp -> Exp
+mkEApp fun arg = case fun of
+  EApp fun args | doMultiApp -> EApp fun (args ++ [arg])
+  _ -> EApp fun [arg]

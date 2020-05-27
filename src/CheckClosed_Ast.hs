@@ -23,14 +23,14 @@ check = \case
     check e2
   EVar x -> do
     Check x
-  ELam x body -> do
-    Extend x $ check body
-  EApp e1 e2 -> do
-    check e1
-    check e2
+  ELam xs body -> do
+    Extend xs $ check body
+  EApp fun args -> do
+    check fun
+    mapM_ check args
   ELet x rhs body -> do
     check rhs
-    Extend x $ check body
+    Extend [x] $ check body
   EIf i t e -> do
     check i
     check t
@@ -43,7 +43,7 @@ instance Monad M where return = Ret; (>>=) = Bind
 data M a where
   Ret :: a -> M a
   Bind :: M a -> (a -> M b) -> M b
-  Extend :: Var -> M a -> M a
+  Extend :: [Var] -> M a -> M a
   Check :: Var -> M ()
 
 runM :: [Var] -> M () -> Either UnboundError ()
@@ -52,7 +52,7 @@ runM = loop where
   loop xs = \case
     Ret x -> return x
     Bind m f -> do v <- loop xs m; loop xs (f v)
-    Extend x m -> loop (x:xs) m
+    Extend xs' m -> loop (xs'++xs) m
     Check x ->
       if x `elem` xs then return () else
         Left $ UnboundError $ "unbound variable: " <> show x

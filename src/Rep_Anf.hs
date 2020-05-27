@@ -9,10 +9,10 @@ data Atom = AVar Var | ACon Builtin.BV
 
 data Code -- flattened expression
   = Return Atom
-  | Tail Atom Atom
+  | Tail Atom [Atom]
   | LetCode Var Code Code
   | LetOp Var Builtin.Prim2 (Atom,Atom) Code
-  | LetLam Var (Var,Code) Code
+  | LetLam Var ([Var],Code) Code
   | Branch Atom Code Code
 
 instance Show Atom where show = \case AVar s -> show s; ACon v -> show v

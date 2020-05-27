@@ -23,9 +23,9 @@ convertAnf :: Anf.Code -> M Code
 convertAnf = \case
   Anf.Return a -> Return <$> convertAtom a
 
-  Anf.Tail func arg -> do -- TODO: multi-Anf
+  Anf.Tail func args -> do
     func <- convertAtom func
-    args <- mapM convertAtom [arg]
+    args <- mapM convertAtom args
     return $ Tail func args
 
   Anf.LetOp x op (a1,a2) code -> do
@@ -34,8 +34,7 @@ convertAnf = \case
     code <- Extend [x] $ convertAnf code
     return $ LetOp op (a1,a2) code
 
-  Anf.LetLam y (x,body) code -> do
-    let xs = [x]
+  Anf.LetLam y (xs,body) code -> do
     fvs <- freeVarList (xs,body)
     let arity = length xs
     let locations = [ (v,LocFree i) | (v,i) <- zip fvs [0..] ]
@@ -99,10 +98,10 @@ fvsBinding (vars,code) = fvsCode code \\ Set.fromList vars
 fvsCode :: Anf.Code -> Set Var
 fvsCode = \case
   Anf.Return a -> fvsAtom a
-  Anf.Tail func arg -> fvsAtom func <> Set.unions (map fvsAtom [arg])
+  Anf.Tail func args -> fvsAtom func <> Set.unions (map fvsAtom args)
   Anf.LetCode x rhs follow -> fvsCode rhs <> fvsBinding ([x],follow)
   Anf.LetOp x _ (a1,a2) code -> fvsAtom a1 <> fvsAtom a2 <> fvsBinding ([x],code)
-  Anf.LetLam y (x,body) code -> fvsBinding ([x],body) <> fvsBinding ([y],code)
+  Anf.LetLam y (xs,body) code -> fvsBinding (xs,body) <> fvsBinding ([y],code)
 --  Anf.LetFix f (xs,body) code -> fvsBinding (f:xs,body) <> fvsBinding ([f],code)
   Anf.Branch a1 c2 c3 -> fvsAtom a1 <> fvsCode c2 <> fvsCode c3
 

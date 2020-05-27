@@ -36,10 +36,11 @@ run (c,q,k) = case c of
     v <- atomic q a
     ret v k
 
-  Anf.Tail f a -> do
+  Anf.Tail f [a] -> do
     func <- atomic q f
     arg <- atomic q a
     enter func arg k
+  Anf.Tail{} -> undefined
 
   Anf.LetCode x rhs body -> do
     k <- pure $ Kbind q x body k
@@ -52,9 +53,10 @@ run (c,q,k) = case c of
     q <- pure $ insert x v q
     run (c,q,k)
 
-  Anf.LetLam x (fx,fc) c -> do
+  Anf.LetLam x ([fx],fc) c -> do
     q <- pure $ insert x (Clo q fx fc) q
     run (c,q,k)
+  Anf.LetLam{} -> undefined
 
   Anf.Branch a1 c2 c3 -> do
     v <- atomic q a1

@@ -55,9 +55,9 @@ run (i,code0,f,k) = case code0 of
 
 ret :: Counts -> Value -> Kont -> Result
 ret i v = \case
-  Kdone -> (v, i')
-  Kbind {fvs,code,kont} -> run (i', code, Frame {fvs, args = [v]}, kont)
-  where i' = tick [DoReturn] i
+  Kdone -> (v, i)
+  Kbind {fvs,code,kont} -> run (i, code, Frame {fvs, args = [v]}, kont)
+--  where i' = tick [DoReturn] i
 
 enter :: Counts -> Value -> [Value] -> Kont -> Result
 enter i func args k = case func of
@@ -141,8 +141,8 @@ countMicro :: Counts -> Micro -> Counts
 countMicro (Counts mm) cl = Counts (Map.insertWith (+) cl 1 mm)
 
 data Micro
-  = DoReturn -- TODO: why count? Always 1+ DoPushContinuation ?
-  | DoEnter
+--  = DoReturn -- TODO: why count? Always 1+ DoPushContinuation ?
+  = DoEnter
   | DoPushContinuation
   | DoPushOverApp
   | DoPrim Builtin.Prim2

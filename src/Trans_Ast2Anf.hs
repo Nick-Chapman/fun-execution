@@ -1,7 +1,7 @@
 
 module Trans_Ast2Anf(flatten) where
 
-import Control.Monad(ap,liftM)
+import Control.Monad(ap,liftM,forM)
 import Data.Map (Map)
 import qualified Data.Map.Strict as Map
 
@@ -24,16 +24,17 @@ codifyAs mx = \case
   EVar x -> do
     a <- Lookup x
     return $ Return a
-  ELam formal body -> do
+  ELam formals body -> do
     let bodyName = fmap (suffix "-body") mx
     name <- fresh mx
-    body <- ModEnv (Map.insert formal (AVar formal)) $ Reset (codifyAs bodyName body)
-    Wrap (LetLam name (formal,body)) (return $ Return $ AVar name)
-  EApp func arg -> do
+    let mod = Map.union (Map.fromList [ (x,AVar x) | x <- formals ])
+    body <- ModEnv mod $ Reset (codifyAs bodyName body)
+    Wrap (LetLam name (formals,body)) (return $ Return $ AVar name)
+  EApp func args -> do
     aFunc <- atomize $ Reset (codify func) -- why reset?
     --aArg <- atomize $ Reset (codify arg)
-    aArg <- atomize $ codify arg
-    return $ Tail aFunc aArg
+    aArgs <- forM args $ (atomize . codify)
+    return $ Tail aFunc aArgs
   ELet x rhs body -> do
     a <- atomizeAs (Just x) $ codifyAs (Just x) rhs
     ModEnv (Map.insert x a) $ codifyAs mx body

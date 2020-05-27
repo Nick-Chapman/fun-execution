@@ -29,15 +29,18 @@ eval = \case
     applyPrim2 prim v1 v2
   EVar x -> do
     Lookup x
-  ELam x body -> do
+  ELam [] body -> eval body
+  ELam (x:xs) body -> do
     env <- Save
-    return $ Clo env x body
-  EApp e1 e2 -> do
+    return $ Clo env x (ELam xs body)
+  EApp e1 [] -> eval e1
+  EApp e1 [e2] -> do
     v1 <- eval e1
     v2 <- eval e2
     apply v1 v2
+  EApp e1 (e2:rest) -> eval (EApp (EApp e1 [e2]) rest)
   ELet x rhs body -> do
-    eval (EApp (ELam x body) rhs)
+    eval (EApp (ELam [x] body) [rhs])
   EIf i t e -> do
     i <- eval i
     branch <- ite i t e
