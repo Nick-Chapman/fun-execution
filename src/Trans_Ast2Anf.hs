@@ -45,6 +45,16 @@ codifyAs mx = \case
     c2 <- Reset (codifyAs thenName e2)
     c3 <- Reset (codifyAs elseName e3)
     return $ Branch a1 c2 c3
+
+  EFix f (ELam xs body) -> do
+    let mod = Map.union (Map.fromList [ (x,AVar x) | x <- f:xs ])
+    body <- ModEnv mod $ Reset (codify body)
+    Wrap (LetFix f (xs,body)) (return $ Return $ AVar f)
+  EFix f body -> do
+    let mod = Map.union (Map.fromList [ (x,AVar x) | x <- [f] ])
+    body <- ModEnv mod $ Reset (codify body)
+    Wrap (LetFix f ([],body)) (return $ Return $ AVar f)
+
   where
     codify = codifyAs Nothing
     atomize = atomizeAs Nothing

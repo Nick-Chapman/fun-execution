@@ -43,7 +43,6 @@ convertAnf = \case
     code <- Extend [y] $ convertAnf code
     return $ LetClose {freeBody,arity,body,code}
 
-{-
   Anf.LetFix f (xs,body) code -> do
     fvs <- freeVarList (xs,body)
     let arity = length xs
@@ -52,7 +51,7 @@ convertAnf = \case
     body <- Reset locations $ Extend xs $ convertAnf body
     code <- Extend [f] $ convertAnf code
     return $ LetClose {freeBody,arity,body,code}
--}
+
   Anf.Branch a1 c2 c3 -> do
     a1 <- convertAtom a1
     c2 <- convertAnf c2
@@ -102,7 +101,7 @@ fvsCode = \case
   Anf.LetCode x rhs follow -> fvsCode rhs <> fvsBinding ([x],follow)
   Anf.LetOp x _ (a1,a2) code -> fvsAtom a1 <> fvsAtom a2 <> fvsBinding ([x],code)
   Anf.LetLam y (xs,body) code -> fvsBinding (xs,body) <> fvsBinding ([y],code)
---  Anf.LetFix f (xs,body) code -> fvsBinding (f:xs,body) <> fvsBinding ([f],code)
+  Anf.LetFix f (xs,body) code -> fvsBinding (f:xs,body) <> fvsBinding ([f],code)
   Anf.Branch a1 c2 c3 -> fvsAtom a1 <> fvsCode c2 <> fvsCode c3
 
 fvsAtom :: Anf.Atom -> Set Var

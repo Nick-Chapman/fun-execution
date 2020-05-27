@@ -7,6 +7,7 @@ import qualified Data.Map.Strict as Map
 
 import Rep_Ast(Var(..),Exp(..))
 import qualified Builtin
+import Parse (parse)
 
 data Value = Base Builtin.BV | Clo Env Var Exp
 type Env = Map Var Value
@@ -45,6 +46,18 @@ eval = \case
     i <- eval i
     branch <- ite i t e
     eval branch
+  EFix x body -> do
+    eval (EApp y [ELam [x] body])
+
+y :: Exp
+y = parseExp "\\f. (\\x. f (\\v. x x v)) (\\x. f (\\v. x x v))"
+
+parseExp :: String -> Exp
+parseExp =
+  either (error . show) id
+  . maybe (error "parseExp:None") id
+  . either (error . show) id
+  . parse
 
 apply :: Value -> Value -> M Value
 apply = \case

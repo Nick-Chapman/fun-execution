@@ -1,6 +1,4 @@
 
-y f = (\x. f (\v. x x v)) (\x. f (\v. x x v))
-
 zero z _ = z
 succ x _ s = s x
 

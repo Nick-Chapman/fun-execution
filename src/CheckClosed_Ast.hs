@@ -35,6 +35,8 @@ check = \case
     check i
     check t
     check e
+  EFix x body -> do
+    Extend [x] $ check body
 
 instance Functor M where fmap = liftM
 instance Applicative M where pure = return; (<*>) = ap

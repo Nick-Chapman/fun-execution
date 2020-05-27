@@ -5,8 +5,6 @@ not b = if b then false else true
 
 (.) f g x = f (g x)
 
-y f = (\x. f (\v. x x v)) (\x. f (\v. x x v))
-
 nil n c = n
 cons x xs n c = c x xs
 

@@ -21,6 +21,7 @@ data Exp
   | EApp Exp [Exp]
   | ELet Var Exp Exp
   | EIf Exp Exp Exp
+  | EFix Var Exp
 
 instance Show Exp where
   show = \case
@@ -31,6 +32,7 @@ instance Show Exp where
     EApp e1 e2 -> "(" ++ show e1 ++ " " ++ show e2 ++ ")"
     ELet x e1 e2 -> "(let " ++ show x ++ " = " ++ show e1 ++ " in " ++ show e2 ++ ")"
     EIf i t e -> "(if " ++ show i ++ " then " ++ show t ++ " else " ++ show e ++ ")"
+    EFix x e -> "(fix " ++ show x ++ " in " ++ show e ++ ")"
 
 type Env = Map Var Exp
 
@@ -39,6 +41,12 @@ binop prim = mkELam x (mkELam y (EPrim2 prim (EVar x) (EVar y)))
   where
     x = Var "x"
     y = Var "y"
+
+y :: Exp
+y = mkELam f (EFix a (mkEApp (EVar f) (EVar a)))
+  where
+    f = Var "fff"
+    a = Var "aaa"
 
 env0 :: Env
 env0 = Map.fromList
@@ -50,6 +58,7 @@ env0 = Map.fromList
   , (Var "<", binop Builtin.LessInt)
   , (Var "true", ECon $ Builtin.Bool True)
   , (Var "false", ECon $ Builtin.Bool False)
+  , (Var "y", y)
   ]
 
 

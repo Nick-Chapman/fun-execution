@@ -55,6 +55,8 @@ run (c,q,k) = case c of
     q <- pure $ insert x (Clo q fxs fc) q
     run (c,q,k)
 
+  Anf.LetFix{} -> undefined
+
   Anf.Branch a1 c2 c3 -> do
     v <- atomic q a1
     code <- branch c2 c3 v
