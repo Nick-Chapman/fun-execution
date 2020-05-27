@@ -1,5 +1,5 @@
 
-module Eval_ClosureConverted (execute,Value,Result(..)) where
+module Eval_ClosureConverted (execute,Value,Instrumentation) where
 
 import Data.Map (Map)
 import qualified Data.Map.Strict as Map
@@ -7,7 +7,8 @@ import qualified Data.Map.Strict as Map
 import Rep_ClosureConverted (Loc(..),Atom(..),Code(..),Value(..))
 import qualified Builtin
 
-data Result = Result Value Counts
+type Result = (Value,Instrumentation)
+type Instrumentation = Counts
 
 ----------------------------------------------------------------------
 -- machine to execute the closure-converted-code
@@ -54,7 +55,7 @@ run (i,code0,f,k) = case code0 of
 
 ret :: Counts -> Value -> Kont -> Result
 ret i v = \case
-  Kdone -> Result v i'
+  Kdone -> (v, i')
   Kbind {fvs,code,kont} -> run (i', code, Frame {fvs, args = [v]}, kont)
   where i' = tick [DoReturn] i
 

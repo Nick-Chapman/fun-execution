@@ -1,5 +1,5 @@
 
-module Pipeline1(Env,Def(..),Exp,Code,Value,parse,compile,execute,env0) where
+module Pipeline1(Env,Def(..),Exp,Code,Value,Instrumentation,parse,compile,execute,env0) where
 
 import qualified Data.Map.Strict as Map
 
@@ -33,3 +33,5 @@ env0 = Map.map eval Ast.env0 where
 
 getRight :: Show e => Either e a -> a
 getRight = either (error . show) id
+
+type Instrumentation = ()

@@ -8,7 +8,7 @@ import qualified System.Console.ANSI as AN
 import qualified System.Console.Haskeline as HL
 import qualified System.Console.Haskeline.History as HL
 
-import Pipeline(Env,Def(..),Exp,Value,parse,compile,execute,env0)
+import Pipeline(Env,Def(..),Exp,Value,Instrumentation,parse,compile,execute,env0)
 
 main :: IO ()
 main = do
@@ -96,19 +96,21 @@ pep Conf{} put line env = do
       put line
       eval env exp >>= \case
         Nothing -> return Nothing
-        Just value -> do
+        Just (value,instrumentation) -> do
           putStrLn $ col AN.Cyan (show name <> " = " <> show value)
+          putStrLn $ col AN.Green (show instrumentation)
           return $ Just $ Map.insert name value env
 
     Right (Just (Right exp)) -> do
       put line
       eval env exp >>= \case
         Nothing -> return Nothing
-        Just value -> do
+        Just (value,instrumentation) -> do
           putStrLn $ col AN.Cyan (show value)
+          putStrLn $ col AN.Green (show instrumentation)
           return Nothing
 
-eval :: Env -> Exp -> IO (Maybe Value)
+eval :: Env -> Exp -> IO (Maybe (Value,Instrumentation))
 eval env exp = do
   putStrLn $ col AN.Magenta ("EXP:" <> show exp)
   case compile env exp of
@@ -121,8 +123,8 @@ eval env exp = do
         Left err -> do
           putStrLn $ col AN.Red (show err)
           return Nothing
-        Right value -> do
-          return $ Just value
+        Right vi -> do
+          return $ Just vi
 
 
 col :: AN.Color -> String -> String

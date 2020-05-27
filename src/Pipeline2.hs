@@ -1,5 +1,5 @@
 
-module Pipeline2(Env,Def(..),Exp,Code,Value,parse,compile,execute,env0) where
+module Pipeline2(Env,Def(..),Exp,Code,Value,Instrumentation,parse,compile,execute,env0) where
 
 import qualified Data.Map.Strict as Map
 
@@ -24,12 +24,14 @@ compile env exp =
     Just err -> Left $ CompilationError $ show err
     Nothing -> Right $ flatten exp
 
-execute :: Env -> Code -> Either RuntimeError Value
-execute = Anf.evaluate
+execute :: Env -> Code -> Either RuntimeError (Value,Instrumentation)
+execute env code = either Left (Right . (\x->(x,()))) $ Anf.evaluate env code
 
 env0 :: Env
 env0 = Map.map eval Ast.env0 where
-  eval = getRight . execute Map.empty . getRight . compile Map.empty
+  eval = fst . getRight . execute Map.empty . getRight . compile Map.empty
 
 getRight :: Show e => Either e a -> a
 getRight = either (error . show) id
+
+type Instrumentation = ()

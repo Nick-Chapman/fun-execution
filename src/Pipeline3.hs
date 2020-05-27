@@ -1,5 +1,5 @@
 
-module Pipeline3(Env,Def(..),Exp,Code,Value,parse,compile,execute,env0) where
+module Pipeline3(Env,Def(..),Exp,Code,Value,Instrumentation,parse,compile,execute,env0) where
 
 import qualified Data.Map.Strict as Map
 
@@ -7,7 +7,7 @@ import qualified Data.Map.Strict as Map
 
 import CheckClosed_Ast (checkInEnv)
 import Eval_Anf (RuntimeError)
-import Eval_ClosureConverted (Value)
+import Eval_ClosureConverted (Value,Instrumentation)
 import Parse (parse)
 import Rep_Ast (Def(..),Exp)
 import Rep_ClosureConverted (Code)
@@ -25,12 +25,12 @@ compile env exp =
     Just err -> Left $ CompilationError $ show err
     Nothing -> Right $ convert env $ flatten exp
 
-execute :: Env -> Code -> Either RuntimeError Value
-execute _env code = Right v where CC.Result v _ = CC.execute code
+execute :: Env -> Code -> Either RuntimeError (Value,Instrumentation)
+execute _ = Right . CC.execute
 
 env0 :: Env
 env0 = Map.map eval Ast.env0 where
-  eval = getRight . execute Map.empty . getRight . compile Map.empty
+  eval = fst . getRight . execute Map.empty . getRight . compile Map.empty
 
 getRight :: Show e => Either e a -> a
 getRight = either (error . show) id
