@@ -5,7 +5,7 @@ module Builtin(BuiltinError,BV(..),Prim1,Prim2(..),apply1,apply2) where
 -- The builtins are stratified by arity.
 data BV = Num Int | Str String | Bool Bool
 data Prim1
-data Prim2 = Add | Sub | Mul | EqInt deriving (Eq,Ord,Show)
+data Prim2 = Add | Sub | Mul | EqInt | LessInt deriving (Eq,Ord,Show)
 
 instance Show BV where
   show = \case
@@ -36,4 +36,8 @@ apply2 = \case
 
   EqInt -> \case
     (Num n1, Num n2) -> Right (Bool (n1 == n2))
-    vv -> Left $ BuiltinError $ "cant compare non-numbers: " <> show vv
+    vv -> Left $ BuiltinError $ "cant compare non-numbers with ==: " <> show vv
+
+  LessInt -> \case
+    (Num n1, Num n2) -> Right (Bool (n1 < n2))
+    vv -> Left $ BuiltinError $ "cant compare non-numbers with <: " <> show vv

@@ -46,12 +46,5 @@ env0 = Map.fromList
   , (Var "-", binop Builtin.Sub)
   , (Var "*", binop Builtin.Mul)
   , (Var "==", binop Builtin.EqInt)
-  , (Var "ite", ite)
+  , (Var "<", binop Builtin.LessInt)
   ]
-
-ite :: Exp
-ite = ELam i (ELam t (ELam e (EIf (EVar i) (EVar t) (EVar e))))
-  where
-    i = Var "i"
-    t = Var "t"
-    e = Var "e"
