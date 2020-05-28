@@ -1,5 +1,5 @@
 
-module Pipeline2(Env,Def(..),Exp,Code,Value,Instrumentation,parse,compile,execute,env0) where
+module Pipeline2(Env,Def(..),Exp,CompilationError,Code,Value,Instrumentation,parse,compile,execute,env0) where
 
 import qualified Data.Map.Strict as Map
 
@@ -18,18 +18,18 @@ import qualified Rep_Ast as Ast(env0)
 data CompilationError = CompilationError { unCompilationError :: String }
 instance Show CompilationError where show = unCompilationError
 
-compile :: Env -> Exp -> Either CompilationError Code
-compile env exp =
-  case checkInEnv (Map.keys env) exp of
+compile :: Exp -> Either CompilationError Code
+compile exp =
+  case checkInEnv [] exp of
     Just err -> Left $ CompilationError $ show err
     Nothing -> Right $ flatten exp
 
-execute :: Env -> Code -> (Value,Instrumentation)
-execute env code = (Anf.evaluate env code, ())
+execute :: Code -> (Value,Instrumentation)
+execute code = (Anf.evaluate Map.empty code, ())
 
 env0 :: Env
 env0 = Map.map eval Ast.env0 where
-  eval = fst . execute Map.empty . getRight . compile Map.empty
+  eval = fst . execute . getRight . compile
 
 getRight :: Show e => Either e a -> a
 getRight = either (error . show) id

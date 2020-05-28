@@ -1,5 +1,5 @@
 
-module Pipeline(Env,Def(..),Exp,Code,Value,Instrumentation,parse,compile,execute,env0) where
+module Pipeline(Env,Def(..),Exp,CompilationError,Code,Value,Instrumentation,parse,compile,execute,env0) where
 
 -- Choose a pipeline...
 

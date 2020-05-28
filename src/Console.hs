@@ -2,13 +2,17 @@
 module Console(main) where
 
 import Control.Monad.Trans.Class (lift)
+import qualified Data.List as List
 import System.Environment (getArgs)
 import qualified Data.Map.Strict as Map
 import qualified System.Console.ANSI as AN
 import qualified System.Console.Haskeline as HL
 import qualified System.Console.Haskeline.History as HL
 
-import Pipeline(Env,Def(..),Exp,Value,Instrumentation,parse,compile,execute,env0)
+import Pipeline (parse,Def(..),Exp,Value,Instrumentation,compile,execute)
+
+import Rep_Ast (wrapDef)
+import qualified Rep_Ast as Ast
 
 main :: IO ()
 main = do
@@ -39,8 +43,11 @@ start :: Conf -> HL.InputT IO ()
 start conf = do
   history <- lift $ readHistory conf
   HL.putHistory history
-  env <- lift $ replay conf env0 (HL.historyLines history)
-  repl conf 1 env
+  defs <- lift $ replay conf defs0 (HL.historyLines history)
+  repl conf 1 defs
+
+defs0 :: [Def]
+defs0 = [ Def x rhs | (x,rhs) <- Map.toList Ast.env0 ]
 
 -- keep history in opposite order from HL standard (newest at end of file)
 
@@ -57,32 +64,31 @@ readHistory :: Conf -> IO HL.History
 readHistory Conf{funFile} = fmap revHistory $ HL.readHistory funFile
 
 -- replay .history lines
-replay :: Conf -> Env -> [String] -> IO Env
-replay conf env = \case
-  [] -> return env
+replay :: Conf -> [Def] -> [String] -> IO [Def]
+replay conf defs = \case
+  [] -> return defs
   line:earlier -> do
-    env1 <- replay conf env earlier
-    pep conf putStrLn line env1 >>= \case
-      Nothing -> return env1
-      Just env2 -> return env2
+    defs1 <- replay conf defs earlier
+    pep conf putStrLn line defs1 >>= \case
+      Nothing -> return defs1
+      Just defs2 -> return defs2
 
 -- read-eval-print-loop
-repl :: Conf -> Int -> Env -> HL.InputT IO ()
-repl conf n env = do
+repl :: Conf -> Int -> [Def] -> HL.InputT IO ()
+repl conf n defs = do
   HL.getInputLine (col AN.Green $ show n <> "> ") >>= \case
     Nothing -> return ()
     Just line -> do
       HL.modifyHistory (HL.addHistory line)
       HL.getHistory >>= lift . writeHistory conf
       let noput _ = return ()
-      lift (pep conf noput line env) >>= \case
-        Nothing -> repl conf n env
-        Just env' -> repl conf (n + 1) env'
-
+      lift (pep conf noput line defs) >>= \case
+        Nothing -> repl conf n defs
+        Just defs' -> repl conf (n + 1) defs'
 
 -- parse-eval-print
-pep :: Conf -> (String -> IO ()) -> String -> Env -> IO (Maybe Env)
-pep Conf{} put line env = do
+pep :: Conf -> (String -> IO ()) -> String -> [Def] -> IO (Maybe [Def])
+pep Conf{} put line defs = do
   case parse line of
 
     Left err -> do
@@ -92,34 +98,35 @@ pep Conf{} put line env = do
     Right Nothing -> do
       return Nothing
 
-    Right (Just (Left (Def name exp))) -> do
+    Right (Just (Left (def@(Def name exp)))) -> do
       put line
-      eval env exp >>= \case
+      eval defs exp >>= \case
         Nothing -> return Nothing
         Just (value,instrumentation) -> do
           putStrLn $ col AN.Cyan (show name <> " = " <> show value)
           putStrLn $ col AN.Green (show instrumentation)
-          return $ Just $ Map.insert name value env
+          return $ Just (def : defs)
 
     Right (Just (Right exp)) -> do
       put line
-      eval env exp >>= \case
+      eval defs exp >>= \case
         Nothing -> return Nothing
         Just (value,instrumentation) -> do
           putStrLn $ col AN.Cyan (show value)
           putStrLn $ col AN.Green (show instrumentation)
           return Nothing
 
-eval :: Env -> Exp -> IO (Maybe (Value,Instrumentation))
-eval env exp = do
-  putStrLn $ col AN.Magenta ("EXP:" <> show exp)
-  case compile env exp of
+eval :: [Def] -> Exp -> IO (Maybe (Value,Instrumentation))
+eval defs exp = do
+  putStr $ col AN.Magenta (show exp)
+  let expWithContext = List.foldl (flip wrapDef) exp defs
+  case compile expWithContext of
     Left err -> do
       putStrLn $ col AN.Red (show err)
       return Nothing
     Right code -> do
-      putStrLn $ col AN.Blue (show code)
-      return $ Just $ execute env code
+      putStr $ col AN.Blue (show code)
+      return $ Just $ execute code
 
 col :: AN.Color -> String -> String
 col c s =
