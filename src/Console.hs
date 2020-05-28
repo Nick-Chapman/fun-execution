@@ -9,9 +9,10 @@ import qualified System.Console.ANSI as AN
 import qualified System.Console.Haskeline as HL
 import qualified System.Console.Haskeline.History as HL
 
-import Pipeline (parse,Def(..),Exp,Value,Instrumentation,compile,execute)
+import Rep_Ast (Def(..),Exp,wrapDef)
+import Parse (parse)
+import Pipeline (Value,Instrumentation,compile,execute)
 
-import Rep_Ast (wrapDef)
 import qualified Rep_Ast as Ast
 
 main :: IO ()

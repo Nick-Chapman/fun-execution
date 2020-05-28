@@ -6,7 +6,7 @@ import qualified Builtin
 
 data Loc = LocArg Int | LocFree Int
 
-data Atom = ALoc Loc | ACon Value
+data Atom = ALoc Loc | ACon Builtin.BV
 
 data Code
   = Return Atom

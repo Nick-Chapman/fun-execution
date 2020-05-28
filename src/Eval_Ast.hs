@@ -1,5 +1,5 @@
 
-module Eval_Ast (Value,Env,evaluate) where
+module Eval_Ast (Value,evaluate) where
 
 import Control.Monad(ap,liftM)
 import Data.Map.Strict (Map)
@@ -17,8 +17,8 @@ instance Show Value where
     Base bv -> show bv
     Clo{} -> "<closure>"
 
-evaluate :: Env -> Exp -> Value
-evaluate env exp = runM env (eval exp)
+evaluate :: Exp -> Value
+evaluate exp = runM (eval exp)
 
 eval :: Exp -> M Value
 eval = \case
@@ -96,8 +96,8 @@ data M a where
   Save :: M Env
   Restore :: Env -> M a -> M a
 
-runM :: Env -> M Value -> Value
-runM env = loop env where
+runM :: M Value -> Value
+runM = loop Map.empty where
   loop :: Env -> M a -> a
   loop env = \case
     Ret x -> x

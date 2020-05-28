@@ -83,7 +83,7 @@ branch c2 c3 = \case
 
 atomic :: Frame -> Atom -> Value
 atomic f = \case
-  ACon v -> v
+  ACon bv -> Base bv
   ALoc loc -> locate f loc
 
 locate :: Frame -> Loc -> Value

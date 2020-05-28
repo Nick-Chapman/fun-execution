@@ -1,5 +1,5 @@
 
-module Eval_Anf (Value,Env,evaluate) where
+module Eval_Anf (Value,evaluate) where
 
 import Control.Monad.Identity (Identity(..))
 import Rep_Anf(Var(..),Code)
@@ -26,8 +26,8 @@ type Env     {-q-} = Map Var Value
 data Kont    {-k-} = Kbind Env Var Code Kont | Kdone
 
 -- | execute (flat)code on a CEK machine
-evaluate :: Env -> Code -> Value
-evaluate env code = runIdentity $ run (code, env, Kdone)
+evaluate :: Code -> Value
+evaluate code = runIdentity $ run (code, Map.empty, Kdone)
 
 -- | run a machine unti the final value is calculated
 run :: Machine -> M Value

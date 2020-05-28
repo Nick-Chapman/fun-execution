@@ -1,5 +1,5 @@
 
-module Trans_Anf2CC (convert,Env) where
+module Trans_Anf2CC (convert) where
 
 import Control.Monad(ap,liftM)
 import Data.Map (Map)
@@ -8,16 +8,14 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 
 import Rep_Anf (Var(..))
-import Rep_ClosureConverted (Loc(..),Atom(..),Code(..),Value(..))
+import Rep_ClosureConverted (Loc(..),Atom(..),Code(..))
 import qualified Rep_Anf as Anf
-
-type Env = Map Anf.Var Value
 
 ----------------------------------------------------------------------
 -- convert Anf to (Closure converted) Code
 
-convert :: Env -> Anf.Code -> Code
-convert env anf = runM env (convertAnf anf) -- TODO: use Env
+convert :: Anf.Code -> Code
+convert anf = runM (convertAnf anf)
 
 convertAnf :: Anf.Code -> M Code
 convertAnf = \case
@@ -35,19 +33,19 @@ convertAnf = \case
     return $ LetOp op (a1,a2) code
 
   Anf.LetLam y (xs,body) code -> do
-    fvs <- freeVarList (xs,body)
+    let fvs = freeVarList (xs,body)
     let arity = length xs
     let locations = [ (v,LocFree i) | (v,i) <- zip fvs [0..] ]
-    freeBody <- Extend [Var "_self"] $ mapM lookupLocal fvs
+    freeBody <- Extend [Var "_self"] $ mapM Lookup fvs
     body <- Reset locations $ Extend xs $ convertAnf body
     code <- Extend [y] $ convertAnf code
     return $ LetClose {freeBody,arity,body,code}
 
   Anf.LetFix f (xs,body) code -> do
-    fvs <- freeVarList (xs,body)
+    let fvs = freeVarList (xs,body)
     let arity = length xs
     let locations = [ (v,LocFree i) | (v,i) <- zip fvs [0..] ]
-    freeBody <- Extend [f] $ mapM lookupLocal fvs
+    freeBody <- Extend [f] $ mapM Lookup fvs
     body <- Reset locations $ Extend xs $ convertAnf body
     code <- Extend [f] $ convertAnf code
     return $ LetClose {freeBody,arity,body,code}
@@ -59,37 +57,20 @@ convertAnf = \case
     return $ Branch a1 c2 c3
 
   Anf.LetCode y rhs follow -> do
-    fvs <- freeVarList ([y],follow)
+    let fvs = freeVarList ([y],follow)
     let locations = [ (v,LocFree i) | (v,i) <- zip fvs [0..] ]
-    freeFollow <- mapM lookupLocal fvs
+    freeFollow <- mapM Lookup fvs
     rhs <- convertAnf rhs
     follow <- Reset locations $ Extend [y] $ convertAnf follow
     return $ LetContinue {freeFollow,rhs,follow}
 
-lookupLocal :: Var -> M Loc
-lookupLocal x = do
-  Lookup x >>= \case
-    Just loc -> return loc
-    Nothing -> error $ "compile-time-lookup: " ++ show x
-
 convertAtom :: Anf.Atom -> M Atom
 convertAtom = \case
-  Anf.ACon bv -> return $ ACon $ Base bv
-  Anf.AVar x -> do
-    Lookup x >>= \case
-      Just loc -> return $ ALoc loc
-      Nothing -> do
-        topEnv <- TopEnv
-        case Map.lookup x topEnv of
-          Just v -> return $ ACon v
-          Nothing -> error $ "compile-time-lookup: " ++ show x
+  Anf.ACon bv -> return $ ACon bv
+  Anf.AVar x -> ALoc <$> Lookup x
 
-freeVarList :: ([Var],Anf.Code) -> M [Var]
-freeVarList (bound,code) = do
-  global <- GlobalVars
-  local <- LocalVars
-  let nono = Set.fromList global \\ Set.fromList local
-  return $ Set.toList $ (fvsBinding (bound,code) \\ nono)
+freeVarList :: ([Var],Anf.Code) -> [Var]
+freeVarList (bound,code) = Set.toList $ fvsBinding (bound,code)
 
 fvsBinding :: ([Var],Anf.Code) -> Set Var
 fvsBinding (vars,code) = fvsCode code \\ Set.fromList vars
@@ -109,7 +90,6 @@ fvsAtom = \case
   Anf.ACon{} -> Set.empty
   Anf.AVar x -> Set.singleton x
 
-
 instance Functor M where fmap = liftM
 instance Applicative M where pure = return; (<*>) = ap
 instance Monad M where return = Ret; (>>=) = Bind
@@ -117,24 +97,18 @@ instance Monad M where return = Ret; (>>=) = Bind
 data M a where
   Ret :: a -> M a
   Bind :: M a -> (a -> M b) -> M b
-  TopEnv :: M (Map Var Value)
-  GlobalVars :: M [Var]
-  LocalVars :: M [Var]
-  Lookup :: Var -> M (Maybe Loc)
+  Lookup :: Var -> M Loc
   Extend :: [Var] -> M a -> M a
   Reset :: [(Var,Loc)] -> M a -> M a
 
-runM :: Env -> M a -> a
-runM topEnv = loop 0 Map.empty where
+runM :: M a -> a
+runM = loop 0 Map.empty where
   loop :: Int -> LocEnv -> M a -> a
   loop d env = \case
     Ret x -> x
     Bind m f -> loop d env (f (loop d env m))
     Reset env m -> loop 0 (Map.fromList env) m
-    TopEnv -> topEnv
-    GlobalVars -> Map.keys topEnv
-    LocalVars -> Map.keys env
-    Lookup x -> rel d <$> Map.lookup x env
+    Lookup x -> maybe (error $ "lookup: " ++ show x) (rel d) $ Map.lookup x env
     Extend xs m -> do
       let env' = Map.fromList [ (x,LocArg i) | (x,i) <- zip (reverse xs) [d..] ]
       loop (d + length xs) (Map.union env' env) m

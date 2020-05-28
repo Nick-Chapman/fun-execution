@@ -1,5 +1,5 @@
 
-module CheckClosed_Ast (UnboundError,checkInEnv) where
+module CheckClosed_Ast (UnboundError,checkClosed) where
 
 import Control.Monad(ap,liftM)
 
@@ -8,9 +8,9 @@ import Rep_Ast(Var(..),Exp(..))
 data UnboundError = UnboundError { unUnboundError :: String }
 instance Show UnboundError where show = unUnboundError
 
-checkInEnv :: [Var] -> Exp -> Maybe UnboundError
-checkInEnv xs exp =
-  case runM xs (check exp) of
+checkClosed :: Exp -> Maybe UnboundError
+checkClosed exp =
+  case runM (check exp) of
     Left err -> Just err
     Right () -> Nothing
 
@@ -48,8 +48,8 @@ data M a where
   Extend :: [Var] -> M a -> M a
   Check :: Var -> M ()
 
-runM :: [Var] -> M () -> Either UnboundError ()
-runM = loop where
+runM :: M () -> Either UnboundError ()
+runM = loop [] where
   loop :: [Var] -> M a -> Either UnboundError a
   loop xs = \case
     Ret x -> return x
