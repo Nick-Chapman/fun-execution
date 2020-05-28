@@ -1,5 +1,5 @@
 
-module Pipeline2 (CompilationError,Code,Value,Instrumentation,compile,execute) where
+module Pipeline2 (CompilationError,Code,Value,Instrumentation,check,compile,execute) where
 
 -- Pipeline: Ast -> Anf
 
@@ -12,8 +12,11 @@ import Eval_Anf (Value,evaluate)
 data CompilationError = CompilationError { unCompilationError :: String }
 instance Show CompilationError where show = unCompilationError
 
-compile :: Exp -> Either CompilationError Code
-compile exp =
+check :: Exp -> Maybe CompilationError
+check exp = (CompilationError . show) <$> checkClosed exp
+
+compile :: Exp -> IO (Either CompilationError Code)
+compile exp = return $
   case checkClosed exp of
     Just err -> Left $ CompilationError $ show err
     Nothing -> Right $ flatten exp

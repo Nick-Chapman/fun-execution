@@ -1,5 +1,6 @@
 
--- Flattened (ANF style) code
+-- | ANF (A-normal-form) expressions (atom/code)
+
 module Rep_Anf(Var(..),Atom(..),Code(..)) where
 
 import qualified Builtin
@@ -7,7 +8,7 @@ import Rep_Ast(Var(..))
 
 data Atom = AVar Var | ACon Builtin.BV
 
-data Code -- flattened expression
+data Code
   = Return Atom
   | Tail Atom [Atom]
   | LetCode Var Code Code
@@ -19,24 +20,21 @@ data Code -- flattened expression
 instance Show Atom where show = \case AVar s -> show s; ACon v -> show v
 instance Show Code where show = unlines . pretty
 
--- | pretty print, showing explicit continutaion management: push, return, (and tail)
 pretty :: Code -> [String]
 pretty = \case
-  Return a -> ["return: " ++ show a]
+  Return a -> [show a]
   Tail func args ->
-    ["tail: " ++ show func ++ " " ++ show args]
-  --LetCode x rhs body ->
-  --  indented ("let " ++ show x ++ " =") (pretty rhs) ++ pretty body
+    [show func ++ " " ++ show args]
   LetCode x rhs body ->
-    indented ("push: " ++ show x ++  " ->") (pretty body) ++ pretty rhs
+    indented ("let " ++ show x ++ " =") (pretty rhs) ++ pretty body
   LetOp x op (a1,a2) c ->
-    indented ("let " ++ show x ++ " =") [show (op,a1,a2)] ++ pretty c
+    indented ("let " ++ show x ++ " =") [show op ++ " " ++ show (a1,a2)] ++ pretty c
   LetLam y (xs,body) c ->
     indented ("let " ++ show y ++ " = \\" ++ show xs ++ ".") (pretty body) ++ pretty c
   LetFix f (xs,body) c ->
     indented ("letrec " ++ show f ++ " = \\" ++ show xs ++ ".") (pretty body) ++ pretty c
-
-  Branch a1 c2 c3 -> ["if " ++ show a1] ++ indented "then" (pretty c2) ++ indented "else" (pretty c3)
+  Branch a1 c2 c3 ->
+    ["if " ++ show a1] ++ indented "then" (pretty c2) ++ indented "else" (pretty c3)
 
 indented :: String -> [String] -> [String]
 indented hang = \case

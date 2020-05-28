@@ -1,5 +1,6 @@
 
--- Closure converted expressions
+-- | Closure Converted Code
+
 module Rep_ClosureConverted (Loc(..),Atom(..),Code(..),Value(..)) where
 
 import qualified Builtin
@@ -25,9 +26,6 @@ instance Show Value where
     Base bv -> show bv
     Clo{} -> "<closure>"
 
-----------------------------------------------------------------------
--- pretty print CC code
-
 instance Show Loc where
   show = \case
     LocArg n -> "*" ++ show n
@@ -46,7 +44,7 @@ pretty = \case
     indented ("push-k: " ++ show freeFollow ++  " ->") (pretty follow)
     ++ pretty rhs
   LetOp op (a1,a2) code ->
-    ["let-op: " ++ show (op,a1,a2)]
+    ["let-op: " ++ show op ++ " " ++ show (a1,a2)]
     ++ pretty code
   LetClose{freeBody,arity,body,code} ->
     indented ("let-close: " ++ show freeBody ++ " \\" ++ show arity ++ ".") (pretty body)

@@ -1,4 +1,6 @@
 
+-- | Machine to execute the closure-converted-code
+
 module Eval_ClosureConverted (execute,Value,Instrumentation) where
 
 import Data.Map (Map)
@@ -9,9 +11,6 @@ import qualified Builtin
 
 type Result = (Value,Instrumentation)
 type Instrumentation = Counts
-
-----------------------------------------------------------------------
--- machine to execute the closure-converted-code
 
 type Machine {-m-} = (Counts,Control,Frame,Kont)
 data Counts  {-i-} = Counts (Map Micro Int)
@@ -57,7 +56,6 @@ ret :: Counts -> Value -> Kont -> Result
 ret i v = \case
   Kdone -> (v, i)
   Kbind {fvs,code,kont} -> run (i, code, Frame {fvs, args = [v]}, kont)
---  where i' = tick [DoReturn] i
 
 enter :: Counts -> Value -> [Value] -> Kont -> Result
 enter i func args k = case func of
@@ -92,7 +90,7 @@ locate Frame{fvs,args} = \case
   LocArg n -> nth "LocArg" args n
 
 push :: Value -> Frame -> Frame
-push v f@Frame{args} = f { args = v : args }
+push v f@Frame{args} = f { args = args ++ [v] }
 
 doOp :: Builtin.Prim2 -> Value -> Value -> Value
 doOp prim = \case
@@ -141,7 +139,6 @@ countMicro :: Counts -> Micro -> Counts
 countMicro (Counts mm) cl = Counts (Map.insertWith (+) cl 1 mm)
 
 data Micro
---  = DoReturn -- TODO: why count? Always 1+ DoPushContinuation ?
   = DoEnter
   | DoPushContinuation
   | DoPushOverApp

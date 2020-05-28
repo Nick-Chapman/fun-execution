@@ -1,5 +1,6 @@
 
--- The language as it comes out of the Parser.
+-- | AST for lambda expressions
+
 module Rep_Ast (Var(..),Exp(..),Def(..),Env,indented,pretty,env0,mkELam,mkEApp,wrapDef) where
 
 import Data.Set (Set,(\\))
@@ -19,10 +20,7 @@ symbolic :: String -> Bool
 symbolic = any symbolicChar where
   symbolicChar c = not (Char.isAlpha c || Char.isDigit c || c == '\'' || c == '_')
 
-
 data Def = Def Var Exp deriving (Show)
-
--- Expressions... Saturated prim-ops; TODO: Multi Lam/App
 
 data Exp
   = ECon Builtin.BV
@@ -38,17 +36,17 @@ instance Show Exp where show = unlines . pretty
 
 type Lines = [String]
 
--- | multi-line pretty print
 pretty :: Exp -> Lines
 pretty = \case
   ECon v -> [show v]
   EVar x -> [show x]
-  EPrim2 prim e1 e2 -> indented (show prim) (jux (pretty e1) (pretty e2))
+  EPrim2 prim e1 e2 -> bracket (indented (show prim) (jux (pretty e1) (pretty e2)))
   EApp func args -> bracket (foldl jux [] (map pretty (func:args)))
-  ELam xs body -> indented ("\\" ++ show xs ++ ".") (pretty body)
+  ELam xs body -> bracket (indented ("\\" ++ show xs ++ ".") (pretty body))
   ELet x rhs body -> indented ("let " ++ show x ++ " =") (pretty rhs) ++ pretty body
-  EFix x body -> indented ("fix " ++ show x ++ " in") (pretty body)
-  EIf i t e -> indented "if" (pretty i) ++ indented "then" (pretty t) ++ indented "else" (pretty e)
+  EFix x body -> bracket (indented ("fix " ++ show x ++ " in") (pretty body))
+  EIf i t e ->
+    bracket (indented "if" (pretty i) ++ indented "then" (pretty t) ++ indented "else" (pretty e))
 
 bracket :: Lines -> Lines
 bracket = onHead ("(" ++) . onTail (++ ")")
@@ -68,7 +66,6 @@ indented hang = \case
   [oneLine] -> [hang ++ " " ++ oneLine]
   lines -> [hang] ++ ["  " ++ line | line <- lines]
 
-
 type Env = Map Var Exp
 
 binop :: Builtin.Prim2 -> Exp
@@ -76,12 +73,6 @@ binop prim = mkELam x (mkELam y (EPrim2 prim (EVar x) (EVar y)))
   where
     x = Var "x"
     y = Var "y"
-
-y :: Exp
-y = mkELam unfixed (EFix f (mkEApp (EVar unfixed) (EVar f)))
-  where
-    unfixed = Var "F"
-    f = Var "f"
 
 env0 :: Env
 env0 = Map.fromList
@@ -93,7 +84,6 @@ env0 = Map.fromList
   , (Var "<", binop Builtin.LessInt)
   , (Var "true", ECon $ Builtin.Bool True)
   , (Var "false", ECon $ Builtin.Bool False)
-  , (Var "y", y)
   ]
 
 -- smart constructors

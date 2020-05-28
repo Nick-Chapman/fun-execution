@@ -1,5 +1,5 @@
 
-module Pipeline (CompilationError,Code,Value,Instrumentation,compile,execute) where
+module Pipeline (CompilationError,Code,Value,Instrumentation,check,compile,execute) where
 
 -- Choose a pipeline...
 

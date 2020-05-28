@@ -21,8 +21,7 @@ parse s =
       Right exp -> return exp
 
 keywords :: [String] -- which are not allowed as identifiers
-keywords = ["let","in","if","then","else"]
---keywords = []
+keywords = ["let","in","if","then","else","fix"]
 
 lang :: Lang Char (Gram (Maybe (Either Def Exp)))
 lang = do
@@ -89,17 +88,16 @@ lang = do
     let formal = alts [ident,underscore,nonInfixedUseOfInfixOp]
     let formals = parseListSep formal ws1
 
-    let mkLam exp = do
-            symbol '\\'
-            ws; xs <- formals
-            ws; alts [symbol '.', do symbol '-'; symbol '>']
-            ws;
-            e <- exp
-            return $ foldr mkELam e xs
+    let abstraction exp = do
+          symbol '\\'
+          ws; (x,xs) <- formals
+          ws; alts [symbol '.', do symbol '-'; symbol '>']
+          ws; e <- exp
+          return $ (x, foldr mkELam e xs)
 
     (exp',exp) <- declare "exp"
 
-    let lam = mkLam exp
+    let lam = do (x,body) <- abstraction exp; return $ mkELam x body
 
     let letSyntax = do
             keyword "let"
@@ -132,12 +130,17 @@ lang = do
 
     let app_lam = mkApp (alts [open,closed,app]) ws lam
 
+    let fix_lam = do
+          keyword "fix"
+          ws; (x,body) <- abstraction exp
+          return $ EFix x body
+
     -- left associative operators
     (opl',opl) <- declare "opl"
     produce opl' $ makeBinop (alts [open,closed,app,opl]) (alts [open,closed,app])
     let opl_lam  = makeBinop (alts [open,closed,app,opl]) lam
 
-    produce exp' $ alts [open,closed,lam,app,opl, app_lam, opl_lam, letSyntax, ifThenElseSyntax]
+    produce exp' $ alts [open,closed,lam,app,opl, app_lam, fix_lam, opl_lam, letSyntax, ifThenElseSyntax]
 
     let def = do
             name <- formal
@@ -164,7 +167,7 @@ lang = do
 digitOfChar :: Char -> Int
 digitOfChar c = Char.ord c - ord0 where ord0 = Char.ord '0'
 
-parseListSep :: Gram a -> Gram () -> Gram [a]
+parseListSep :: Gram a -> Gram () -> Gram (a,[a])
 parseListSep p sep = alts [
-    do x <- p; sep; xs <- parseListSep p sep; return (x : xs),
-    do x <- p; return [x]]
+    do x <- p; sep; (x1,xs) <- parseListSep p sep; return (x,x1:xs),
+    do x <- p; return (x,[])]

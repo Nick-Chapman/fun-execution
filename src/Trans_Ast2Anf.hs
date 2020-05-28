@@ -1,4 +1,6 @@
 
+-- | Flatten an AST expression to ANF code
+
 module Trans_Ast2Anf(flatten) where
 
 import Control.Monad(ap,liftM,forM)
@@ -8,7 +10,6 @@ import qualified Data.Map.Strict as Map
 import Rep_Ast as Ast(Exp(..),Var(..))
 import Rep_Anf as Anf(Code(..),Atom(..))
 
--- | compile an expression to (flat)code for a CEK machine
 flatten :: Exp -> Code
 flatten exp = runM (codifyAs Nothing exp)
 
@@ -31,9 +32,8 @@ codifyAs mx = \case
     body <- ModEnv mod $ Reset (codifyAs bodyName body)
     Wrap (LetLam name (formals,body)) (return $ Return $ AVar name)
   EApp func args -> do
-    -- These Reset cause the generation of more efficient `early push-k' code!
-    aFunc <- atomize $ Reset (codify func)
-    aArgs <- forM args $ (atomize . Reset . codify)
+    aFunc <- atomize $ codify func
+    aArgs <- forM args $ (atomize . codify)
     return $ Tail aFunc aArgs
   ELet x rhs body -> do
     a <- atomizeAs (Just x) $ codifyAs (Just x) rhs
@@ -41,19 +41,15 @@ codifyAs mx = \case
   EIf e1 e2 e3 -> do
     let thenName = fmap (suffix "-then") mx
     let elseName = fmap (suffix "-else") mx
-    a1 <- atomize $ Reset $ codify e1
+    a1 <- atomize $ codify e1
     c2 <- Reset (codifyAs thenName e2)
     c3 <- Reset (codifyAs elseName e3)
     return $ Branch a1 c2 c3
-
-  EFix f (ELam xs body) -> do
+  EFix f body0 -> do
+    let (xs,body) = case body0 of ELam xs body -> (xs,body); _ -> ([],body)
     let mod = Map.union (Map.fromList [ (x,AVar x) | x <- f:xs ])
     body <- ModEnv mod $ Reset (codify body)
     Wrap (LetFix f (xs,body)) (return $ Return $ AVar f)
-  EFix f body -> do
-    let mod = Map.union (Map.fromList [ (x,AVar x) | x <- [f] ])
-    body <- ModEnv mod $ Reset (codify body)
-    Wrap (LetFix f ([],body)) (return $ Return $ AVar f)
 
   where
     codify = codifyAs Nothing
@@ -66,11 +62,12 @@ atomizeAs mx m = do
     Return a -> return a -- dont re-name at atom
     rhs -> do
       x <- fresh mx
-      Wrap (letCode' x rhs) $ return $ AVar x
+      Wrap (LetCode x rhs) $ return $ AVar x
 
+{-
 -- | Avoid pushing a continutaion which calls a known function
-letCode' :: Var -> Code -> Code -> Code
-letCode' x rhs body
+letCode :: Var -> Code -> Code -> Code
+letCode x rhs body
   | Tail (AVar x') arg <- body, x==x', LetLam f def (Return (AVar f')) <- rhs, f==f' =
   {-
       push: \x. tail: x arg in
@@ -83,6 +80,8 @@ letCode' x rhs body
       LetLam f def (Tail (AVar f) arg)
   | otherwise =
       LetCode x rhs body
+-}
+
 
 fresh :: Maybe Var -> M Var
 fresh = \case
@@ -115,7 +114,7 @@ runM m = snd $ loop Map.empty 1 m k0 where
     Wrap f m -> f' (loop env state m k) where f' (s,a) = (s,f a)
     Lookup x -> k state (lookup x env)
     ModEnv f m -> loop (f env) state m k
-    Fresh -> k (state+1) (Var ("_v" <> show state))
+    Fresh -> k (state+1) (Var ("_g" <> show state))
 
   lookup :: Var -> CompileEnv -> Atom
   lookup x env =

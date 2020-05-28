@@ -1,4 +1,6 @@
 
+-- | Evaluate ANF expressions,on a CEK style machine
+
 module Eval_Anf (Value,evaluate) where
 
 import Control.Monad.Identity (Identity(..))
@@ -55,7 +57,7 @@ run (c,q,k) = case c of
     q <- pure $ insert x (Clo q fxs fc) q
     run (c,q,k)
 
-  Anf.LetFix{} -> undefined
+  Anf.LetFix{} -> undefined -- TODO?
 
   Anf.Branch a1 c2 c3 -> do
     v <- atomic q a1

@@ -9,9 +9,9 @@ import qualified System.Console.ANSI as AN
 import qualified System.Console.Haskeline as HL
 import qualified System.Console.Haskeline.History as HL
 
-import Rep_Ast (Def(..),Exp,wrapDef)
+import Rep_Ast (Def(..),wrapDef)
 import Parse (parse)
-import Pipeline (Value,Instrumentation,compile,execute)
+import Pipeline (check,compile,execute)
 
 import qualified Rep_Ast as Ast
 
@@ -99,35 +99,28 @@ pep Conf{} put line defs = do
     Right Nothing -> do
       return Nothing
 
-    Right (Just (Left (def@(Def name exp)))) -> do
+    Right (Just (Left (def@(Def _ exp)))) -> do
       put line
-      eval defs exp >>= \case
-        Nothing -> return Nothing
-        Just (value,instrumentation) -> do
-          putStrLn $ col AN.Cyan (show name <> " = " <> show value)
-          putStrLn $ col AN.Green (show instrumentation)
+      let expWithContext = List.foldl (flip wrapDef) exp defs
+      case check expWithContext of
+        Just err -> do
+          putStrLn $ col AN.Red (show err)
+          return Nothing
+        Nothing ->
           return $ Just (def : defs)
 
     Right (Just (Right exp)) -> do
       put line
-      eval defs exp >>= \case
-        Nothing -> return Nothing
-        Just (value,instrumentation) -> do
+      let expWithContext = List.foldl (flip wrapDef) exp defs
+      compile expWithContext >>= \case
+        Left err -> do
+          putStrLn $ col AN.Red (show err)
+          return Nothing
+        Right code -> do
+          let (value,instrumentation) = execute code
           putStrLn $ col AN.Cyan (show value)
           putStrLn $ col AN.Green (show instrumentation)
           return Nothing
-
-eval :: [Def] -> Exp -> IO (Maybe (Value,Instrumentation))
-eval defs exp = do
-  putStr $ col AN.Magenta (show exp)
-  let expWithContext = List.foldl (flip wrapDef) exp defs
-  case compile expWithContext of
-    Left err -> do
-      putStrLn $ col AN.Red (show err)
-      return Nothing
-    Right code -> do
-      putStr $ col AN.Blue (show code)
-      return $ Just $ execute code
 
 col :: AN.Color -> String -> String
 col c s =

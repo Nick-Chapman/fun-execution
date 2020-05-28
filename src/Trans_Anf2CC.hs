@@ -1,4 +1,6 @@
 
+-- | Convert Anf to CC (Closure converted) Code
+
 module Trans_Anf2CC (convert) where
 
 import Control.Monad(ap,liftM)
@@ -11,11 +13,8 @@ import Rep_Anf (Var(..))
 import Rep_ClosureConverted (Loc(..),Atom(..),Code(..))
 import qualified Rep_Anf as Anf
 
-----------------------------------------------------------------------
--- convert Anf to (Closure converted) Code
-
 convert :: Anf.Code -> Code
-convert anf = runM (convertAnf anf)
+convert = runM [] . convertAnf
 
 convertAnf :: Anf.Code -> M Code
 convertAnf = \case
@@ -32,37 +31,34 @@ convertAnf = \case
     code <- Extend [x] $ convertAnf code
     return $ LetOp op (a1,a2) code
 
-  Anf.LetLam y (xs,body) code -> do
-    let fvs = freeVarList (xs,body)
+  Anf.LetLam y (xs,body0) code -> do
     let arity = length xs
-    let locations = [ (v,LocFree i) | (v,i) <- zip fvs [0..] ]
-    freeBody <- Extend [Var "_self"] $ mapM Lookup fvs
-    body <- Reset locations $ Extend xs $ convertAnf body
+    let fvs = freeVarList (xs,body0)
+    let body = runM fvs (Extend xs $ convertAnf body0)
+    freeBody <- mapM Lookup fvs
     code <- Extend [y] $ convertAnf code
     return $ LetClose {freeBody,arity,body,code}
 
-  Anf.LetFix f (xs,body) code -> do
-    let fvs = freeVarList (xs,body)
+  Anf.LetFix f (xs,body0) code -> do
     let arity = length xs
-    let locations = [ (v,LocFree i) | (v,i) <- zip fvs [0..] ]
+    let fvs = freeVarList (xs,body0)
+    let body = runM fvs (Extend xs $ convertAnf body0)
     freeBody <- Extend [f] $ mapM Lookup fvs
-    body <- Reset locations $ Extend xs $ convertAnf body
     code <- Extend [f] $ convertAnf code
     return $ LetClose {freeBody,arity,body,code}
+
+  Anf.LetCode y rhs follow0 -> do
+    let fvs = freeVarList ([y],follow0)
+    let follow = runM fvs (Extend [y] $ convertAnf follow0)
+    freeFollow <- mapM Lookup fvs
+    rhs <- convertAnf rhs
+    return $ LetContinue {freeFollow,rhs,follow}
 
   Anf.Branch a1 c2 c3 -> do
     a1 <- convertAtom a1
     c2 <- convertAnf c2
     c3 <- convertAnf c3
     return $ Branch a1 c2 c3
-
-  Anf.LetCode y rhs follow -> do
-    let fvs = freeVarList ([y],follow)
-    let locations = [ (v,LocFree i) | (v,i) <- zip fvs [0..] ]
-    freeFollow <- mapM Lookup fvs
-    rhs <- convertAnf rhs
-    follow <- Reset locations $ Extend [y] $ convertAnf follow
-    return $ LetContinue {freeFollow,rhs,follow}
 
 convertAtom :: Anf.Atom -> M Atom
 convertAtom = \case
@@ -99,23 +95,17 @@ data M a where
   Bind :: M a -> (a -> M b) -> M b
   Lookup :: Var -> M Loc
   Extend :: [Var] -> M a -> M a
-  Reset :: [(Var,Loc)] -> M a -> M a
 
-runM :: M a -> a
-runM = loop 0 Map.empty where
-  loop :: Int -> LocEnv -> M a -> a
+runM :: [Var] -> M a -> a
+runM fvs = loop 0 env0 where
+  env0 = Map.fromList [ (v,LocFree i) | (v,i) <- zip fvs [0..] ]
+  loop :: Int -> Env -> M a -> a
   loop d env = \case
     Ret x -> x
     Bind m f -> loop d env (f (loop d env m))
-    Reset env m -> loop 0 (Map.fromList env) m
-    Lookup x -> maybe (error $ "lookup: " ++ show x) (rel d) $ Map.lookup x env
+    Lookup x -> maybe (error $ "lookup: " ++ show x) id $ Map.lookup x env
     Extend xs m -> do
-      let env' = Map.fromList [ (x,LocArg i) | (x,i) <- zip (reverse xs) [d..] ]
+      let env' = Map.fromList [ (x,LocArg i) | (x,i) <- zip xs [d..] ]
       loop (d + length xs) (Map.union env' env) m
 
-rel :: Int -> Loc -> Loc -- relativize a location to a stack depth
-rel d = \case
-  loc@LocFree{} -> loc
-  LocArg n -> LocArg (d-n-1) -- TODO: could this be avoided with absolute offsets?
-
-type LocEnv = Map Var Loc
+type Env = Map Var Loc

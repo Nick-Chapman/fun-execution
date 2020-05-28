@@ -1,4 +1,6 @@
 
+-- | Evaluate AST expressions directly
+
 module Eval_Ast (Value,evaluate) where
 
 import Control.Monad(ap,liftM)
