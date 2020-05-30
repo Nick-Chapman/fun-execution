@@ -12,6 +12,7 @@ import CheckClosed_Ast (checkClosed)
 import Trans_Normalize (normalize)
 import Trans_Ast2Anf (flatten)
 import Trans_Anf2CC (convert)
+import Trans_CC2Linear (linearize)
 import Eval_ClosureConverted (execute)
 
 data CompilationError = CompilationError { unCompilationError :: String }
@@ -20,19 +21,26 @@ instance Show CompilationError where show = unCompilationError
 check :: Exp -> Maybe CompilationError
 check exp = (CompilationError . show) <$> checkClosed exp
 
-compile :: Exp -> IO (Either CompilationError Code)
-compile exp = do
+-- quick hackto allow switch NBE on/off -- TODO: tidy this up
+-- TODO: compile should redo the check
+compile :: Bool -> Exp -> IO (Either CompilationError Code)
+compile nbe exp = do
   case checkClosed exp of
     Just err -> return $ Left $ CompilationError $ show err
     Nothing -> do
       putStr $ col AN.Yellow (show exp)
-      let exp' = normalize exp
-      putStr $ col AN.Green (show exp')
+      exp' <-
+        if not nbe then pure exp else do
+          let exp' = normalize exp
+          putStr $ col AN.Green (show exp')
+          pure exp'
       let anf = flatten exp'
       putStr $ col AN.Blue (show anf)
-      let code = convert anf
-      putStr $ col AN.Magenta (show code)
-      return $ Right code
+      let cc = convert anf
+      putStr $ col AN.Magenta (show cc)
+      let lin = linearize cc
+      putStr $ col AN.White (show lin)
+      return $ Right cc
 
 
 col :: AN.Color -> String -> String

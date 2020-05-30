@@ -21,13 +21,13 @@ main = do
 
 data Conf = Conf
   { funFile :: FilePath
-  , verbose :: Bool -- what should this control?
+  , nbe :: Bool
   }
 
 defaultConf :: Conf
 defaultConf = Conf
   { funFile = ".history"
-  , verbose = False
+  , nbe = True
   }
 
 parseArgs :: [String] -> Conf
@@ -35,7 +35,7 @@ parseArgs args = loop args defaultConf
   where
     loop args conf = case args of
       [] -> conf
-      "-v":rest -> loop rest $ conf { verbose = True }
+      "-nn":rest -> loop rest $ conf { nbe = False }
       funFile:rest -> loop rest $ conf { funFile }
 
 start :: Conf -> HL.InputT IO ()
@@ -84,7 +84,7 @@ repl conf n defs = do
 
 -- parse-eval-print
 pep :: Conf -> (String -> IO ()) -> String -> [Def] -> IO (Maybe [Def])
-pep Conf{} put line defs = do
+pep Conf{nbe} put line defs = do
   case parse line of
 
     Left err -> do
@@ -107,7 +107,7 @@ pep Conf{} put line defs = do
     Right (Just (Right exp)) -> do
       put line
       let expWithContext = List.foldl (flip wrapDef) exp defs
-      compile expWithContext >>= \case
+      compile nbe expWithContext >>= \case
         Left err -> do
           putStrLn $ col AN.Red (show err)
           return Nothing
