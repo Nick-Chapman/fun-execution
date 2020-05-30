@@ -75,7 +75,7 @@ lang = do
             b <- right
             return (f a b)
 
-    let infixOps = [ ".", "%", "+", "-", "*", "^", ">", "<", ">=", "<=", "==", "===", "&&", "||", "++" ]
+    let infixOps = [ ".", "%", "+", "-", "*", "^", ">", "<", ">=", "<=", "==", "===", "&&", "||", "++", ">>" ]
 
     let mkBinOp c = mkBin (\x y -> mkEApp (mkEApp (EVar (Var c)) x) y) c
     let makeBinop a b = alts (map (\s -> mkBinOp s a b) infixOps)
