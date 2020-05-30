@@ -4,7 +4,6 @@ module Console(main) where
 import Control.Monad.Trans.Class (lift)
 import qualified Data.List as List
 import System.Environment (getArgs)
-import qualified Data.Map.Strict as Map
 import qualified System.Console.ANSI as AN
 import qualified System.Console.Haskeline as HL
 import qualified System.Console.Haskeline.History as HL
@@ -12,8 +11,7 @@ import qualified System.Console.Haskeline.History as HL
 import Rep_Ast (Def(..),wrapDef)
 import Parse (parse)
 import Pipeline (check,compile,execute)
-
-import qualified Rep_Ast as Ast
+import Predefined (defs)
 
 main :: IO ()
 main = do
@@ -44,11 +42,8 @@ start :: Conf -> HL.InputT IO ()
 start conf = do
   history <- lift $ readHistory conf
   HL.putHistory history
-  defs <- lift $ replay conf defs0 (HL.historyLines history)
+  defs <- lift $ replay conf Predefined.defs (HL.historyLines history)
   repl conf 1 defs
-
-defs0 :: [Def]
-defs0 = [ Def x rhs | (x,rhs) <- Map.toList Ast.env0 ]
 
 -- keep history in opposite order from HL standard (newest at end of file)
 

@@ -26,6 +26,9 @@ eval :: Exp -> M Value
 eval = \case
   ECon v -> do
     return $ Base v
+  EPrim1 prim e1 -> do
+    v1 <- eval e1
+    applyPrim1 prim v1
   EPrim2 prim e1 e2 -> do
     v1 <- eval e1
     v2 <- eval e2
@@ -68,9 +71,14 @@ apply = \case
   v ->
     \_ -> Err $ "cant apply non-function: " <> show v
 
+applyPrim1 :: Builtin.Prim1 -> Value -> M Value
+applyPrim1 prim = \case
+  Clo{} -> Err $ "cant apply prim1 to arg1-closure: " <> show prim
+  Base bv1 -> Base <$> (returnOrError $ Builtin.apply1 prim bv1)
+
 applyPrim2 :: Builtin.Prim2 -> Value -> Value -> M Value
 applyPrim2 prim = \case
-  Clo{} -> \_ -> Err $ "cant apply primitive to arg1-closure: " <> show prim
+  Clo{} -> \_ -> Err $ "cant apply prim2 to arg1-closure: " <> show prim
   Base bv1 -> \case
     Clo{} -> Err $ "cant apply primitive to arg2-closure: " <> show (prim,bv1)
     Base bv2 -> Base <$> (returnOrError $ Builtin.apply2 prim (bv1,bv2))

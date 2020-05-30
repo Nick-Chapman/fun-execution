@@ -38,10 +38,15 @@ run (i,code0,f,k) = case code0 of
     where
       k' = Kbind {fvs = map (locate f) freeFollow, code = follow, kont=k}
 
-  LetOp op (a1,a2) code ->
-    run (tick [DoPrim op] i, code, f', k)
+  LetPrim1 prim a1 code ->
+    run (tick [DoPrim1 prim] i, code, f', k)
     where
-      f' = push (doOp op (atomic f a1) (atomic f a2)) f
+      f' = push (doPrim1 prim (atomic f a1)) f
+
+  LetPrim2 prim (a1,a2) code ->
+    run (tick [DoPrim2 prim] i, code, f', k)
+    where
+      f' = push (doPrim2 prim (atomic f a1) (atomic f a2)) f
 
   LetClose {freeBody,arity,body,code} ->
     run (tick [DoMakeClosure] i, code, f', k)
@@ -92,8 +97,13 @@ locate Frame{fvs,args} = \case
 push :: Value -> Frame -> Frame
 push v f@Frame{args} = f { args = args ++ [v] }
 
-doOp :: Builtin.Prim2 -> Value -> Value -> Value
-doOp prim = \case
+doPrim1 :: Builtin.Prim1 -> Value -> Value
+doPrim1 prim = \case
+  Clo{} -> error $ "cant apply primitive to arg1-closure: " <> show prim
+  Base bv1 -> Base (returnOrError $ Builtin.apply1 prim bv1)
+
+doPrim2 :: Builtin.Prim2 -> Value -> Value -> Value
+doPrim2 prim = \case
   Clo{} -> \_ -> error $ "cant apply primitive to arg1-closure: " <> show prim
   Base bv1 -> \case
     Clo{} -> error $ "cant apply primitive to arg2-closure: " <> show (prim,bv1)
@@ -142,7 +152,8 @@ data Micro
   = DoEnter
   | DoPushContinuation
   | DoPushOverApp
-  | DoPrim Builtin.Prim2
+  | DoPrim1 Builtin.Prim1
+  | DoPrim2 Builtin.Prim2
   | DoMakeClosure
   | DoMakePap
   | DoBranch

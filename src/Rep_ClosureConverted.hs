@@ -13,7 +13,8 @@ data Code
   = Return Atom
   | Tail Atom [Atom]
   | LetContinue { freeFollow :: [Loc], rhs :: Code, follow :: Code }
-  | LetOp Builtin.Prim2 (Atom,Atom) Code
+  | LetPrim1 Builtin.Prim1 Atom Code
+  | LetPrim2 Builtin.Prim2 (Atom,Atom) Code
   | LetClose { freeBody :: [Loc], arity :: Int, body :: Code, code :: Code }
   | Branch Atom Code Code
 
@@ -43,8 +44,11 @@ pretty = \case
   LetContinue{freeFollow,rhs,follow} ->
     indented ("push-k: " ++ show freeFollow ++  " ->") (pretty follow)
     ++ pretty rhs
-  LetOp op (a1,a2) code ->
-    ["let-op: " ++ show op ++ " " ++ show (a1,a2)]
+  LetPrim1 prim a1 code ->
+    ["let-op: " ++ show prim ++ " " ++ show a1]
+    ++ pretty code
+  LetPrim2 prim (a1,a2) code ->
+    ["let-op: " ++ show prim ++ " " ++ show (a1,a2)]
     ++ pretty code
   LetClose{freeBody,arity,body,code} ->
     indented ("let-close: " ++ show freeBody ++ " \\" ++ show arity ++ ".") (pretty body)

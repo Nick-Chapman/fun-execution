@@ -12,7 +12,8 @@ data Code
   = Return Atom
   | Tail Atom [Atom]
   | LetCode Var Code Code
-  | LetOp Var Builtin.Prim2 (Atom,Atom) Code
+  | LetPrim1 Var Builtin.Prim1 Atom Code
+  | LetPrim2 Var Builtin.Prim2 (Atom,Atom) Code
   | LetLam Var ([Var],Code) Code
   | LetFix Var ([Var],Code) Code
   | Branch Atom Code Code
@@ -27,8 +28,10 @@ pretty = \case
     [show func ++ " " ++ show args]
   LetCode x rhs body ->
     indented ("let " ++ show x ++ " =") (pretty rhs) ++ pretty body
-  LetOp x op (a1,a2) c ->
-    indented ("let " ++ show x ++ " =") [show op ++ " " ++ show (a1,a2)] ++ pretty c
+  LetPrim1 x prim a1 c ->
+    indented ("let " ++ show x ++ " =") [show prim ++ " " ++ show a1] ++ pretty c
+  LetPrim2 x prim (a1,a2) c ->
+    indented ("let " ++ show x ++ " =") [show prim ++ " " ++ show (a1,a2)] ++ pretty c
   LetLam y (xs,body) c ->
     indented ("let " ++ show y ++ " = \\" ++ show xs ++ ".") (pretty body) ++ pretty c
   LetFix f (xs,body) c ->

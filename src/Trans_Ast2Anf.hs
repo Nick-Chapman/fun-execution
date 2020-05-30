@@ -17,11 +17,15 @@ codifyAs :: Maybe Var -> Exp -> M Code
 codifyAs mx = \case
   ECon bv -> do
     return $ Return $ ACon bv
-  EPrim2 op e1 e2 -> do
+  EPrim1 prim e1 -> do
+    a1 <- atomize $ codify e1
+    name <- fresh mx
+    Wrap (LetPrim1 name prim a1) (return $ Return $ AVar name)
+  EPrim2 prim e1 e2 -> do
     a1 <- atomize $ codify e1
     a2 <- atomize $ codify e2
     name <- fresh mx
-    Wrap (LetOp name op (a1,a2)) (return $ Return $ AVar name)
+    Wrap (LetPrim2 name prim (a1,a2)) (return $ Return $ AVar name)
   EVar x -> do
     a <- Lookup x
     return $ Return a

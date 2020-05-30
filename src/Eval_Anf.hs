@@ -46,10 +46,16 @@ run (c,q,k) = case c of
     k <- pure $ Kbind q x body k
     run (rhs,q,k)
 
-  Anf.LetOp x op (a1,a2) c -> do
+  Anf.LetPrim1 x prim a1 c -> do
+    v1 <- atomic q a1
+    v <- doPrim1 prim v1
+    q <- pure $ insert x v q
+    run (c,q,k)
+
+  Anf.LetPrim2 x prim (a1,a2) c -> do
     v1 <- atomic q a1
     v2 <- atomic q a2
-    v <- doOp op v1 v2
+    v <- doPrim2 prim v1 v2
     q <- pure $ insert x v q
     run (c,q,k)
 
@@ -115,8 +121,13 @@ atomic q = \case
 look :: Var -> Env -> M Value
 look x q = maybe (err $ "runtime-lookup: " ++ show x) return (Map.lookup x q)
 
-doOp :: Builtin.Prim2 -> Value -> Value -> M Value
-doOp prim = \case
+doPrim1 :: Builtin.Prim1 -> Value -> M Value
+doPrim1 prim = \case
+  Clo{} -> err $ "cant apply primitive to arg1-closure: " <> show prim
+  Base bv1 -> Base <$> (returnOrError $ Builtin.apply1 prim bv1)
+
+doPrim2 :: Builtin.Prim2 -> Value -> Value -> M Value
+doPrim2 prim = \case
   Clo{} -> \_ -> err $ "cant apply primitive to arg1-closure: " <> show prim
   Base bv1 -> \case
     Clo{} -> err $ "cant apply primitive to arg2-closure: " <> show (prim,bv1)

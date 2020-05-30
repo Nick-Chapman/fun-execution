@@ -49,6 +49,10 @@ reflect = \case
   ECon bv -> do
     return $ Syntax (ECon bv)
 
+  EPrim1 prim e1 -> do
+    e1 <- norm e1
+    return $ Syntax $ EPrim1 prim e1
+
   EPrim2 prim e1 e2 -> do
     e1 <- norm e1
     e2 <- norm e2

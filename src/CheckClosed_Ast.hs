@@ -18,6 +18,8 @@ check :: Exp -> M ()
 check = \case
   ECon{} -> do
     return ()
+  EPrim1 _ e1 -> do
+    check e1
   EPrim2 _ e1 e2 -> do
     check e1
     check e2

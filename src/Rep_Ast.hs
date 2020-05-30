@@ -1,14 +1,11 @@
 
 -- | AST for lambda expressions
 
-module Rep_Ast (Var(..),Exp(..),Def(..),Env,indented,pretty,env0,mkELam,mkEApp,wrapDef) where
+module Rep_Ast (Var(..),Exp(..),Def(..),indented,pretty,mkELam,mkEApp,wrapDef) where
 
 import Data.Set (Set,(\\))
 import qualified Data.Char as Char
 import qualified Data.Set as Set
-
-import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
 
 import qualified Builtin
 
@@ -24,6 +21,7 @@ data Def = Def Var Exp deriving (Show)
 
 data Exp
   = ECon Builtin.BV
+  | EPrim1 Builtin.Prim1 Exp
   | EPrim2 Builtin.Prim2 Exp Exp
   | EVar Var
   | ELam [Var] Exp
@@ -40,6 +38,7 @@ pretty :: Exp -> Lines
 pretty = \case
   ECon v -> [show v]
   EVar x -> [show x]
+  EPrim1 prim e1 -> bracket (indented (show prim) (pretty e1))
   EPrim2 prim e1 e2 -> bracket (indented (show prim) (jux (pretty e1) (pretty e2)))
   EApp func args -> bracket (foldl jux [] (map pretty (func:args)))
   ELam xs body -> bracket (indented ("\\" ++ show xs ++ ".") (pretty body))
@@ -65,26 +64,6 @@ indented hang = \case
   [] -> error "indented"
   [oneLine] -> [hang ++ " " ++ oneLine]
   lines -> [hang] ++ ["  " ++ line | line <- lines]
-
-type Env = Map Var Exp
-
-binop :: Builtin.Prim2 -> Exp
-binop prim = mkELam x (mkELam y (EPrim2 prim (EVar x) (EVar y)))
-  where
-    x = Var "x"
-    y = Var "y"
-
-env0 :: Env
-env0 = Map.fromList
-  [ (Var "+", binop Builtin.Add)
-  , (Var "-", binop Builtin.Sub)
-  , (Var "*", binop Builtin.Mul)
-  , (Var "%", binop Builtin.ModInt)
-  , (Var "==", binop Builtin.EqInt)
-  , (Var "<", binop Builtin.LessInt)
-  , (Var "true", ECon $ Builtin.Bool True)
-  , (Var "false", ECon $ Builtin.Bool False)
-  ]
 
 -- smart constructors
 doMultiLam,doMultiApp :: Bool
@@ -113,6 +92,7 @@ wrapDef (Def x rhs) body =
 fvs :: Exp -> Set Var
 fvs = \case
   ECon _ -> Set.empty
+  EPrim1 _ e1 -> fvs e1
   EPrim2 _ e1 e2 -> Set.union (fvs e1) (fvs e2)
   EVar x -> Set.fromList [x]
   ELam xs body -> fvs body \\ Set.fromList xs

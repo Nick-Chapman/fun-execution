@@ -25,11 +25,16 @@ convertAnf = \case
     args <- mapM convertAtom args
     return $ Tail func args
 
-  Anf.LetOp x op (a1,a2) code -> do
+  Anf.LetPrim1 x prim a1 code -> do
+    a1 <- convertAtom a1
+    code <- Extend [x] $ convertAnf code
+    return $ LetPrim1 prim a1 code
+
+  Anf.LetPrim2 x prim (a1,a2) code -> do
     a1 <- convertAtom a1
     a2 <- convertAtom a2
     code <- Extend [x] $ convertAnf code
-    return $ LetOp op (a1,a2) code
+    return $ LetPrim2 prim (a1,a2) code
 
   Anf.LetLam y (xs,body0) code -> do
     let arity = length xs
@@ -76,7 +81,8 @@ fvsCode = \case
   Anf.Return a -> fvsAtom a
   Anf.Tail func args -> fvsAtom func <> Set.unions (map fvsAtom args)
   Anf.LetCode x rhs follow -> fvsCode rhs <> fvsBinding ([x],follow)
-  Anf.LetOp x _ (a1,a2) code -> fvsAtom a1 <> fvsAtom a2 <> fvsBinding ([x],code)
+  Anf.LetPrim1 x _ a1 code -> fvsAtom a1 <> fvsBinding ([x],code)
+  Anf.LetPrim2 x _ (a1,a2) code -> fvsAtom a1 <> fvsAtom a2 <> fvsBinding ([x],code)
   Anf.LetLam y (xs,body) code -> fvsBinding (xs,body) <> fvsBinding ([y],code)
   Anf.LetFix f (xs,body) code -> fvsBinding (f:xs,body) <> fvsBinding ([f],code)
   Anf.Branch a1 c2 c3 -> fvsAtom a1 <> fvsCode c2 <> fvsCode c3
