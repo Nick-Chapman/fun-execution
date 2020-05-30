@@ -12,7 +12,8 @@ import qualified Builtin
 type Result = (Value,Instrumentation)
 type Instrumentation = Counts
 
-type Machine {-m-} = (Counts,Control,Frame,Kont)
+data Machine = Machine { i :: Counts, c :: Control, f :: Frame, k :: Kont }
+
 data Counts  {-i-} = Counts (Map Micro Int)
 type Control {-c-} = Code
 data Frame   {-f-} = Frame { fvs :: [Value], args :: [Value] }
@@ -22,10 +23,10 @@ execute :: Code -> Result
 execute = run. install
 
 install :: Code -> Machine
-install code = (counts0,code,frame0,Kdone) where frame0 = Frame [] []
+install code = Machine counts0 code frame0 Kdone where frame0 = Frame [] []
 
 run :: Machine -> Result
-run (i,code0,f,k) = case code0 of
+run Machine{i,c=code0,f,k} = case code0 of
 
   Return atom ->
     ret i (atomic f atom) k
@@ -34,46 +35,46 @@ run (i,code0,f,k) = case code0 of
     enter i (atomic f func) (map (atomic f) args) k
 
   LetContinue{freeFollow,rhs,follow} ->
-    run (tick (saves++[DoPushContinuation]) i, rhs,f,k')
+    run $ Machine (tick (saves++[DoPushContinuation]) i) rhs f k'
     where
       saves = map (\_ -> DoSaveFree) freeFollow
       k' = Kbind {fvs = map (locate f) freeFollow, code = follow, kont=k}
 
   LetPrim1 prim a1 code ->
-    run (tick [DoPrim1 prim] i, code, f', k)
+    run $ Machine (tick [DoPrim1 prim] i) code f' k
     where
       f' = push (doPrim1 prim (atomic f a1)) f
 
   LetPrim2 prim (a1,a2) code ->
-    run (tick [DoPrim2 prim] i, code, f', k)
+    run $ Machine (tick [DoPrim2 prim] i) code f' k
     where
       f' = push (doPrim2 prim (atomic f a1) (atomic f a2)) f
 
   LetClose {freeBody,arity,body,code} ->
-    run (tick (saves++[DoMakeClosure]) i, code, f', k)
+    run $ Machine (tick (saves++[DoMakeClosure]) i) code f' k
     where
       saves = map (\_ -> DoSaveFree) freeBody
       f' = push clo f
       clo = Clo {fvs = map (locate f') freeBody, arity, body}
 
   Branch a1 c2 c3 ->
-    run (tick [DoBranch] i, branch c2 c3 (atomic f a1), f, k)
+    run $ Machine (tick [DoBranch] i) (branch c2 c3 (atomic f a1)) f k
 
 ret :: Counts -> Value -> Kont -> Result
 ret i v = \case
   Kdone -> (v, i)
-  Kbind {fvs,code,kont} -> run (i, code, Frame {fvs, args = [v]}, kont)
+  Kbind {fvs,code,kont} -> run $ Machine i code Frame {fvs, args = [v]} kont
 
 enter :: Counts -> Value -> [Value] -> Kont -> Result
 enter i func args k = case func of
   Base{} -> error "cant enter a non-closure"
   clo@Clo{fvs,arity,body}
     | arity == n -> do
-        run (tick [DoEnter] i, body, Frame {fvs,args}, k)
+        run $ Machine (tick [DoEnter] i) body Frame {fvs,args} k
     | arity < n -> do
         let (myArgs,overArgs) = splitAt arity args
         let k' = makeOverAppK overArgs k
-        run (tick [DoPushOverApp, DoEnter] i, body, Frame {fvs,args = myArgs}, k')
+        run $ Machine (tick [DoPushOverApp, DoEnter] i) body Frame {fvs,args = myArgs} k'
     | otherwise -> do
         ret (tick [DoMakePap] i) (makePap nMissing clo args) k
     where
