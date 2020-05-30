@@ -34,8 +34,9 @@ run (i,code0,f,k) = case code0 of
     enter i (atomic f func) (map (atomic f) args) k
 
   LetContinue{freeFollow,rhs,follow} ->
-    run (tick [DoPushContinuation] i, rhs,f,k')
+    run (tick (saves++[DoPushContinuation]) i, rhs,f,k')
     where
+      saves = map (\_ -> DoSaveFree) freeFollow
       k' = Kbind {fvs = map (locate f) freeFollow, code = follow, kont=k}
 
   LetPrim1 prim a1 code ->
@@ -49,8 +50,9 @@ run (i,code0,f,k) = case code0 of
       f' = push (doPrim2 prim (atomic f a1) (atomic f a2)) f
 
   LetClose {freeBody,arity,body,code} ->
-    run (tick [DoMakeClosure] i, code, f', k)
+    run (tick (saves++[DoMakeClosure]) i, code, f', k)
     where
+      saves = map (\_ -> DoSaveFree) freeBody
       f' = push clo f
       clo = Clo {fvs = map (locate f') freeBody, arity, body}
 
@@ -157,4 +159,5 @@ data Micro
   | DoMakeClosure
   | DoMakePap
   | DoBranch
+  | DoSaveFree
   deriving (Show,Eq,Ord)

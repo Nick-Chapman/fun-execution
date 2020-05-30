@@ -4,6 +4,7 @@ module Builtin(BuiltinError,BV(..),Prim1(..),Prim2(..),apply1,apply2) where
 
 -- The builtins are stratified by arity.
 data BV = Num Int | Str String | Bool Bool
+  deriving (Eq)
 
 data Prim1 = ShowInt
   deriving (Eq,Ord,Show)
