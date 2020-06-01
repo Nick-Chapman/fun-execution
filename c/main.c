@@ -4,11 +4,21 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef void* value;
 
+#define False 0
+#define True 1
+
 //#include "nfib.h"
-#include "nthPrime.h"
+//#include "nthPrime.h"
+//#include "fact.h"
+//#include "thrice-thrice.h"
+//#include "triangle.h"
+//#include "combinator-fact.h"
+//#include "list-processing.h"
+#include "pythagorian.h"
 
 
 static unsigned max_code_ref = 0;
@@ -83,8 +93,32 @@ value* grab(int n) {
   return res;
 }
 
+#define bytes_per_value 8 //TODO, compute
 
-#define stack_size 10
+char* string_of_int(long arg) {
+  static char buf[20]; //big enough?
+  sprintf(buf,"%ld",arg);
+  unsigned len = strlen(buf) + 1; // 0 terminated
+  unsigned n = 1 + ((len-1) / bytes_per_value);
+  //printf("string_of_int: int=%ld, len=%d, words=%d\n",arg,len,n);
+  char* res = (char*)grab(n);
+  strcpy(res,buf);
+  //printf("string_of_int: arg=%ld -> res='%s'\n",arg,buf);
+  return res;
+}
+
+char* string_concat(char* s1, char* s2) {
+  unsigned len = strlen(s1) + strlen(s2) + 1; //0-terminated
+  unsigned n = 1 + ((len-1) / bytes_per_value);
+  //printf("string_concat: '%s'^'%s', len=%d, words=%d\n",s1,s2,len,n);
+  char* res = (char*)grab(n);
+  sprintf(res,"%s%s",s1,s2);
+  //printf("string-concat: s1='%s', s2='%s', res='%s'\n",s1,s2,res);
+  return res;
+}
+
+
+#define stack_size 20
 static value stack1[stack_size];
 static value* stack1_start = &stack1[0];
 static value* stack1_end = &stack1[stack_size];
@@ -152,6 +186,9 @@ value argument() {
     value res = stack[n];
     //printf("argument: stack(%d) is %p\n",n,res);
     return res;
+  }
+  case 'x': {
+    return stack[10 * digit() + digit()];
   }
   case '$': {
     int n = digit();
@@ -346,20 +383,42 @@ int main() {
       push_stack((value)res);
       break;
     }
+    case '*': {
+      long a = (long)argument();
+      long b = (long)argument();
+      long res = a * b;
+      //printf("mul: a=%ld, b=%ld, res=%ld\n",a,b,res);
+      push_stack((value)res);
+      break;
+    }
     case '%': {
       long a = (long)argument();
       long b = (long)argument();
-      //printf("modulus: a=%ld, b=%ld, res...\n",a,b);
       long res = a % b;
       //printf("modulus: a=%ld, b=%ld, res=%ld\n",a,b,res);
       push_stack((value)res);
       break;
     }
+    case '&': {
+      long a = (long)argument();
+      char* res = string_of_int(a);
+      push_stack((value)res);
+      break;
+    }
+    case '^': {
+      //static char buf[100];
+      char* s1 = (char*)argument();
+      char* s2 = (char*)argument();
+      char* res = string_concat(s1,s2);
+      push_stack((value)res);
+      break;
+      }
     default: { printf("unknown byte: %d('%c')\n",instr,instr); exit(1); }
     }
   }
 
   printf("the final result is: %ld\n", (long)final_result);
+  printf("the final result is: '%s'\n", (char*)final_result); //crashes if not a string
   printf("heap used, %ld cells\n", (hp-heap));
   printf("#steps = %d \n", count);
   exit(0);

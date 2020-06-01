@@ -32,9 +32,15 @@ data Code = Code
 
 instance Show Code where
   show Code{lits,defs} =
-    unlines
-    ( ("lits = " ++ show lits)
-      : [ show i ++ ": " ++ show seq | (i,seq) <- zip [0::Int ..] defs ] )
+    unlines $
+    [ "static value lits[] = {"
+    ] ++
+    [ "   (value) " ++ show lit ++ "," | lit <- lits ] ++
+    [ "  };"
+    , "static char* prog[] ="
+    , "  {" ] ++
+    [ "   \"" ++ show seq ++ "\", //" ++ show i | (i,seq) <- zip [0::Int ..] defs ] ++
+    [ "  };" ]
 
 instance Show ValRef where
   show = \case
