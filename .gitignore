@@ -3,3 +3,5 @@
 *~
 stack.yaml.lock
 .history
+*.o
+*.exe
