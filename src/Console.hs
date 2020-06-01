@@ -11,7 +11,7 @@ import qualified System.Console.Haskeline.History as HL
 import Rep_Ast (Def(..),wrapDef)
 import Parse (parse)
 import Pipeline (check,compile,execute)
-import Predefined (defs)
+import qualified Predefined (defs)
 
 main :: IO ()
 main = do

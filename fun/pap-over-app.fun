@@ -1,4 +1,7 @@
 
+-- This example is designed to stress the engine's support for pap/over-app
+-- But to do this, it needs to be compiled *without* NBE
+
 id x = x
 
 f2 a b = a+b
@@ -11,5 +14,6 @@ g3 = id (f3 1) 2 3     + id (f3 1 2) 3
 g4 = id (f4 1) 2 3 4   + id (f4 1 2) 3 4   + id (f4 1 2 3) 4
 g5 = id (f5 1) 2 3 4 5 + id (f5 1 2) 3 4 5 + id (f5 1 2 3) 4 5 + id (f5 1 2 3 4) 5
 
-g2 + g3 + g4 + g5
+main = (g2 + g3 + g4 + g5)
+
 

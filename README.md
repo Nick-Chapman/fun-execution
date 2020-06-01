@@ -45,3 +45,11 @@ B - Then design bytecode, add compilation step from CC to ByteCode. With Cek bas
 evaluation of the ByteCode (within the Haskell console).
 
 C - Export the bytecode & code execution engine in rust/C.
+
+
+TODO
+- simple access to argv at runtime, sp progs can be abstract wr.t some arg-value
+- stop creating continuations in the heap
+- bench nfib!
+- tag values as number/string/closure, so can print correctly, and also needed when do GC
+- GC

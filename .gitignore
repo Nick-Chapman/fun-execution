@@ -5,3 +5,5 @@ stack.yaml.lock
 .history
 *.o
 *.exe
+gen/*.c
+run/*.out

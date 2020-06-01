@@ -1,26 +1,14 @@
 
-// first C program I have written for a file...
-// byte code interpreter!
+// Byte code interpreter for fun-execution...
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-typedef void* value;
+#include "value.h"
 
-#define False 0
-#define True 1
-
-//#include "nfib.h"
-//#include "nthPrime.h"
-//#include "fact.h"
-//#include "thrice-thrice.h"
-//#include "triangle.h"
-//#include "combinator-fact.h"
-//#include "list-processing.h"
-//#include "pythagorian.h"
-//#include "pap-over-app.h"
-#include "over.h"
+extern value lits[];
+extern char* prog[];
 
 #define debug False
 
@@ -41,7 +29,6 @@ static char* get_code_ref(unsigned n) {
   }
   return prog[n];
 }
-
 
 static unsigned max_pap_ref = 0;
 static char* pap_code[] =
@@ -108,7 +95,7 @@ static void init_max_overapp() {
   //printf("max_overapp_ref = %d\n",max_pap_ref);
 }
 static char* get_overapp_extra(unsigned extra) {
-  if (debug) printf("get_overapp_extra: %d\n", extra);
+  //printf("get_overapp_extra: %d\n", extra);
   if (extra < 1) {
     printf("overapp_ref extra<1\n"); exit(1);
   }
@@ -160,7 +147,7 @@ char* string_concat(char* s1, char* s2) {
 }
 
 
-#define stack_size 20
+#define stack_size 30
 static value stack1[stack_size];
 static value* stack1_start = &stack1[0];
 static value* stack1_end = &stack1[stack_size];

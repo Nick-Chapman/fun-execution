@@ -1,6 +1,6 @@
 module Main where
 
-import qualified Console
+import qualified Batch
 
 main :: IO ()
-main = Console.main
+main = Batch.main

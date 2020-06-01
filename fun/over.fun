@@ -8,4 +8,4 @@ func a = let b = a+a in \c. b*c
 
 prog n = keep func n n
 
-prog 10 -- expect 200
+main = prog 10

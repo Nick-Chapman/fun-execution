@@ -15,4 +15,4 @@ inc x = x+1
 
 pipe = sum . map (inc . sqr) . upto 1
 
-pipe 100
+main = pipe 100
