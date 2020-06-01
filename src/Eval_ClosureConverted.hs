@@ -69,17 +69,17 @@ enter :: Counts -> Value -> [Value] -> Kont -> Result
 enter i func args k = case func of
   Base{} -> error "cant enter a non-closure"
   clo@Clo{fvs,arity,body}
-    | arity == n -> do
+    | arity == got -> do
         run $ Machine (tick [DoEnter] i) body Frame {fvs,args} k
-    | arity < n -> do
+    | arity < got -> do
         let (myArgs,overArgs) = splitAt arity args
         let k' = makeOverAppK overArgs k
-        run $ Machine (tick [DoPushOverApp, DoEnter] i) body Frame {fvs,args = myArgs} k'
+        run $ Machine (tick [DoPushOverApp (length overArgs), DoEnter] i) body Frame {fvs,args = myArgs} k'
     | otherwise -> do
-        ret (tick [DoMakePap] i) (makePap nMissing clo args) k
+        ret (tick [DoMakePap {got,need=arity}] i) (makePap nMissing clo args) k
     where
-      nMissing = arity - n
-      n = length args
+      nMissing = arity - got
+      got = length args
 
 branch :: Code -> Code -> Value -> Code
 branch c2 c3 = \case
@@ -154,11 +154,11 @@ countMicro (Counts mm) cl = Counts (Map.insertWith (+) cl 1 mm)
 data Micro
   = DoEnter
   | DoPushContinuation
-  | DoPushOverApp
+  | DoPushOverApp {overArgs::Int}
   | DoPrim1 Builtin.Prim1
   | DoPrim2 Builtin.Prim2
   | DoMakeClosure
-  | DoMakePap
+  | DoMakePap {got::Int,need::Int}
   | DoBranch
   | DoSaveFree
   deriving (Show,Eq,Ord)

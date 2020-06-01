@@ -18,11 +18,12 @@ typedef void* value;
 //#include "triangle.h"
 //#include "combinator-fact.h"
 //#include "list-processing.h"
-#include "pythagorian.h"
+//#include "pythagorian.h"
+#include "pap-over-app.h"
 
 
 static unsigned max_code_ref = 0;
-void init_max_code_ref() {
+static void init_max_code_ref() {
   //printf("bytecode program=\n");
   unsigned i = 0;
   for (; prog[i]; i++) {
@@ -43,15 +44,19 @@ static char* get_code_ref(unsigned n) {
 static unsigned max_pap_ref = 0;
 static char* pap_code[] =
   {
-   "?-pap0/1",
-   "?-pap0/2",
    "t~02~10", //pap1/2
-   //"?-pap0/3",
-   //"?-pap1/3",
-   //"?-pap2/3",
+   "t~03~101", //pap1/3
+   "t~03~1~20", //pap2/3
+   "t~04~1012", //pap1/4
+   "t~04~1~201", //pap2/4
+   "t~04~1~2~30", //pap3/4
+   "t~05~10123", //pap1/5
+   "t~05~1~2012", //pap2/5
+   "t~05~1~2~301", //pap3/5
+   "t~05~1~2~3~40", //pap4/5
    0,
   };
-void init_max_pap() {
+static void init_max_pap() {
   //printf("pap codes=\n");
   unsigned i = 0;
   for (; pap_code[i]; i++) {
@@ -68,14 +73,49 @@ static char* get_pap_ref(unsigned n) {
   return pap_code[n];
 }
 static char* get_pap_got_need(unsigned got, unsigned need) {
+  if (got<1) {
+    printf("get_pap_got_need (got<1): got<%d\n", got); exit(1);
+  }
+  if (need<2) {
+    printf("get_pap_got_need (need<2): need<%d\n", need); exit(1);
+  }
   if (got >= need) {
     printf("get_pap_got_need (got>=need): %d>=%d\n", got,need); exit(1);
   }
-  //need is at least 1
-  unsigned n = (need * (need - 1)) / 2 + got;
+  unsigned n = ((need-1) * (need-2)) / 2 + got - 1;
   //printf("get_pap_got_need: %d/%d -> %d\n", got, need, n);
   return get_pap_ref(n);
 }
+
+static unsigned max_overapp_ref = 0;
+static char* overapp_code[] =
+  {
+   "t01~0",
+   "t02~0~1",
+   "t03~0~1~2",
+   "t04~0~1~2~3",
+   0,
+  };
+static void init_max_overapp() {
+  //printf("overapp codes=\n");
+  unsigned i = 0;
+  for (; overapp_code[i]; i++) {
+    //printf("%i: %s\n", i, overapp_code[i]);
+  }
+  max_overapp_ref = i;
+  //printf("max_overapp_ref = %d\n",max_pap_ref);
+}
+static char* get_overapp_extra(unsigned extra) {
+  //printf("get_overapp_extra: %d\n", extra);
+  if (extra < 1) {
+    printf("overapp_ref extra<1\n"); exit(1);
+  }
+  if (extra > max_overapp_ref) {
+    printf("overapp_ref too big: (extra=%d > max=%d)\n", extra, max_overapp_ref); exit(1);
+  }
+  return overapp_code[extra-1];
+}
+
 
 
 #define heap_size 1000000
@@ -249,6 +289,7 @@ int main() {
 
   init_max_code_ref();
   init_max_pap();
+  init_max_overapp();
 
   stack = stack1_start;
   sp = stack1_start;
@@ -344,11 +385,23 @@ int main() {
           pap[i+2] = stack[i];
         }
         return_to_kont(pap);
-        //exit(1);
       }
       if (got > need) {
-        printf("OVERAPP\n"); exit(1);
+        //printf("OVERAPP...");
+        unsigned extra = got - need;
+        value* over = grab(extra+2);
+        over[0] = get_overapp_extra(extra);
+        over[1] = kont;
+        for (int i = 0; i < extra; i++) {
+          value v = stack[i+need];
+          //printf("make overapp, free(%d) = %p\n",i,v);
+          over[i+2] = v;
+        }
+        kont = over;
+        //printf("OVERAPP\n"); exit(1);
+        //need to adjust the ap here? ... why doesn't it break even though I haven't??
       }
+      //if we reach here, got==need or got>need (but we stashed the extra args)
       break;
     }
     case '=': {
@@ -406,7 +459,6 @@ int main() {
       break;
     }
     case '^': {
-      //static char buf[100];
       char* s1 = (char*)argument();
       char* s2 = (char*)argument();
       char* res = string_concat(s1,s2);
@@ -418,7 +470,7 @@ int main() {
   }
 
   printf("the final result is: %ld\n", (long)final_result);
-  printf("the final result is: '%s'\n", (char*)final_result); //crashes if not a string
+  //printf("the final result is: '%s'\n", (char*)final_result); //crashes if not a string
   printf("heap used, %ld cells\n", (hp-heap));
   printf("#steps = %d \n", count);
   exit(0);
