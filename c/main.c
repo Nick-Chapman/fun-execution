@@ -19,8 +19,10 @@ typedef void* value;
 //#include "combinator-fact.h"
 //#include "list-processing.h"
 //#include "pythagorian.h"
-#include "pap-over-app.h"
+//#include "pap-over-app.h"
+#include "over.h"
 
+#define debug False
 
 static unsigned max_code_ref = 0;
 static void init_max_code_ref() {
@@ -106,7 +108,7 @@ static void init_max_overapp() {
   //printf("max_overapp_ref = %d\n",max_pap_ref);
 }
 static char* get_overapp_extra(unsigned extra) {
-  //printf("get_overapp_extra: %d\n", extra);
+  if (debug) printf("get_overapp_extra: %d\n", extra);
   if (extra < 1) {
     printf("overapp_ref extra<1\n"); exit(1);
   }
@@ -178,7 +180,7 @@ static value* ap_limit;
 
 
 void push_stack(value v) {
-  //printf("push_stack(%ld) %p\n",(sp-stack),v);
+  if (debug) printf("push_stack(%ld) %p\n",(sp-stack),v);
   if (sp >= sp_limit) {
     printf("stack exhausted"); exit(1);
   }
@@ -202,7 +204,7 @@ static int count = 0;
 
 static char next() {
   char c = *code++;
-  //printf("[%d]'%c'...\n",count,c);
+  if (debug) printf("[%d]'%c'...\n",count,c);
   count++;
   return c;
 }
@@ -224,7 +226,7 @@ value argument() {
   case '0'...'9': {
     int n = c - '0';
     value res = stack[n];
-    //printf("argument: stack(%d) is %p\n",n,res);
+    if (debug) printf("argument: stack(%d) is %p\n",n,res);
     return res;
   }
   case 'x': {
@@ -233,13 +235,13 @@ value argument() {
   case '$': {
     int n = digit();
     value res = lits[n];
-    //printf("argument: lit(%d) is %p\n",n,res);
+    if (debug) printf("argument: lit(%d) is %p\n",n,res);
     return res;
   }
   case '~': {
     int n = digit();
     value res = frame[n];
-    //printf("argument: frame(%d) is %p\n",n,res);
+    if (debug) printf("argument: frame(%d) is %p\n",n,res);
     return res;
   }
   }
@@ -250,7 +252,7 @@ value argument() {
 static value final_result = 0;
 
 static void set_code(char* newCode) {
-  //printf("set_code: %s\n", newCode);
+  if (debug) printf("set_code: %s\n", newCode);
   code = newCode;
 }
 
@@ -273,6 +275,7 @@ static void return_to_kont(value v) {
 
 static value* this_closure = 0;
 static void enter_clo(value* clo) {
+  if (debug) printf("enter_clo: %p\n",clo);
   this_closure = clo;
   set_code(clo[0]);
   frame = &clo[1];
@@ -282,7 +285,6 @@ static void enter_clo(value* clo) {
   tmp = sp_limit; sp_limit = ap_limit; ap_limit = tmp;
   sp = ap; ap = args;
 }
-
 
 
 int main() {
@@ -398,8 +400,7 @@ int main() {
           over[i+2] = v;
         }
         kont = over;
-        //printf("OVERAPP\n"); exit(1);
-        //need to adjust the ap here? ... why doesn't it break even though I haven't??
+        sp -= extra; //adjust for the number of args stashed in the oveapp kont
       }
       //if we reach here, got==need or got>need (but we stashed the extra args)
       break;
