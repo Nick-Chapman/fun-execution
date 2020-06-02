@@ -9,11 +9,12 @@ run() {
     $@
 }
 
-run thrice-thrice
-run nfib
-run triangle
 run fact 6
-run nthPrime
+run triangle 100
+run nfib 10
+run nthPrime 10
+
+run thrice-thrice
 run combinator-fact
 run list-processing
 run over

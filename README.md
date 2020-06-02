@@ -51,7 +51,6 @@ TODO
 - rewrite this README
 - have batch compiled take a flag to control NBE/not
 - run examples with/out NBE - have expect files for both
-- simple access to argv at runtime, sp progs can be abstract wr.t some arg-value
 - tag values as number/string/closure, so can print correctly, and also needed when do GC
 - stop creating continuations in the heap
 - bench nfib!

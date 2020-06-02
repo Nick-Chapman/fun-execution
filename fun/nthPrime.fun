@@ -19,4 +19,4 @@ search = fix \search n ps i. if all (not . divisible i) ps then (if length ps ==
 
 nthPrime n = if n < 1 then 0 else if n == 1 then 2 else search n (cons 2 nil) 3
 
-main = nthPrime 10
+main = nthPrime (readInt (argv 1))
