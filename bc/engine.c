@@ -475,6 +475,6 @@ int main(int argc, char* argv[]) {
   printf("the final result is: %ld\n", (long)final_result);
   //printf("the final result is: '%s'\n", (char*)final_result); //crashes if not a string
   printf("heap used, %ld cells\n", (hp-heap));
-  printf("#steps = %d \n", count);
+  printf("#steps = %d\n", count);
   exit(0);
 }
