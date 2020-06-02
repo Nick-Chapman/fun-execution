@@ -4,3 +4,4 @@
 stack.yaml.lock
 .history
 _build/**
+perf/_build/**

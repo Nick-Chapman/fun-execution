@@ -16,7 +16,7 @@ regression.diffs: test/test.expected $(BUILD)/test.out
 $(BUILD)/test.out: test/test.sh $(EXES)
 	test/test.sh > $@
 
-$(BUILD)/exe/%: $(BUILD)/engine.o $(BUILD)/obj/%.o
+$(BUILD)/exe/%: $(BUILD)/main.o $(BUILD)/engine.o $(BUILD)/obj/%.o
 	mkdir -p $(BUILD)/exe; gcc $^ -o $@
 
 $(BUILD)/obj/%.o: $(BUILD)/c/%.c $(BC)/value.h
@@ -26,4 +26,7 @@ $(BUILD)/c/%.c: fun/%.fun src/*.hs
 	mkdir -p $(BUILD)/c; stack run batch -- $(patsubst $(BUILD)/c/%.c,%,$@)
 
 $(BUILD)/engine.o: $(BC)/engine.c $(BC)/value.h
+	mkdir -p $(BUILD); gcc -Wall -Werror -c $< -o $@
+
+$(BUILD)/main.o: $(BC)/main.c $(BC)/value.h
 	mkdir -p $(BUILD); gcc -Wall -Werror -c $< -o $@

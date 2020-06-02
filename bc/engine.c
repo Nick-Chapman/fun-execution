@@ -107,7 +107,7 @@ static char* get_overapp_extra(unsigned extra) {
 
 
 
-#define heap_size 1000000
+#define heap_size 100000000
 static value heap[heap_size];
 static value* hp = &heap[0];
 static value* heap_end = &heap[heap_size];
@@ -274,7 +274,7 @@ static void enter_clo(value* clo) {
 }
 
 
-int main(int argc, char* argv[]) {
+value run_engine(int argc, char* argv[]) {
 
   init_max_code_ref();
   init_max_pap();
@@ -471,10 +471,16 @@ int main(int argc, char* argv[]) {
     default: { printf("unknown byte: %d('%c')\n",instr,instr); exit(1); }
     }
   }
+  return final_result;
+}
 
-  printf("the final result is: %ld\n", (long)final_result);
-  //printf("the final result is: '%s'\n", (char*)final_result); //crashes if not a string
+void run_engine_show_info(int argc, char* argv[]) {
+
+  value result = run_engine(argc,argv);
+
+  printf("the final result is: %ld\n", (long)result);
+  //printf("the final result is: '%s'\n", (char*)result); //crashes if not a string
   printf("heap used, %ld cells\n", (hp-heap));
   printf("#steps = %d\n", count);
-  exit(0);
+
 }
