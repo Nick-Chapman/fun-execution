@@ -12,6 +12,7 @@ import Rep_Ast (Def(..),wrapDef)
 import Parse (parse)
 import Pipeline (check,compile,execute)
 import qualified Predefined (defs)
+import Builtin (CommandLineArgs(..))
 
 main :: IO ()
 main = do
@@ -22,12 +23,14 @@ main = do
 data Conf = Conf
   { funFile :: FilePath
   , nbe :: Bool
+  , cla ::CommandLineArgs
   }
 
 defaultConf :: Conf
 defaultConf = Conf
   { funFile = ".history"
   , nbe = True
+  , cla = CommandLineArgs { argv = \n -> show (10+n) }
   }
 
 parseArgs :: [String] -> Conf
@@ -84,7 +87,7 @@ repl conf n defs = do
 
 -- parse-eval-print
 pep :: Conf -> (String -> IO ()) -> String -> [Def] -> IO (Maybe [Def])
-pep Conf{nbe} put line defs = do
+pep Conf{nbe,cla} put line defs = do
   case parse line of
 
     Left err -> do
@@ -112,7 +115,7 @@ pep Conf{nbe} put line defs = do
           putStrLn $ col AN.Red (show err)
           return Nothing
         Right code -> do
-          let (value,instrumentation) = execute code
+          let (value,instrumentation) = execute cla code
           putStrLn $ col AN.Cyan (show value)
           putStrLn $ col AN.Green (show instrumentation)
           return Nothing

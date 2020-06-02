@@ -10,6 +10,10 @@ import qualified Builtin
 
 import Data.Map (Map,insert)
 import qualified Data.Map.Strict as Map
+import Builtin (CommandLineArgs(..))
+
+cla :: CommandLineArgs
+cla = CommandLineArgs { argv = \n -> "eval-anf:argv-" ++ show n }
 
 data Value
   = Base Builtin.BV
@@ -124,7 +128,7 @@ look x q = maybe (err $ "runtime-lookup: " ++ show x) return (Map.lookup x q)
 doPrim1 :: Builtin.Prim1 -> Value -> M Value
 doPrim1 prim = \case
   Clo{} -> err $ "cant apply primitive to arg1-closure: " <> show prim
-  Base bv1 -> Base <$> (returnOrError $ Builtin.apply1 prim bv1)
+  Base bv1 -> Base <$> (returnOrError $ Builtin.apply1 cla prim bv1)
 
 doPrim2 :: Builtin.Prim2 -> Value -> Value -> M Value
 doPrim2 prim = \case

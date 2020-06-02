@@ -10,6 +10,10 @@ import qualified Data.Map.Strict as Map
 import Rep_Ast(Var(..),Exp(..))
 import qualified Builtin
 import Parse (parse)
+import Builtin (CommandLineArgs(..))
+
+cla :: CommandLineArgs
+cla = CommandLineArgs { argv = \n -> "eval-anf:argv-" ++ show n }
 
 data Value = Base Builtin.BV | Clo Env Var Exp
 type Env = Map Var Value
@@ -74,7 +78,7 @@ apply = \case
 applyPrim1 :: Builtin.Prim1 -> Value -> M Value
 applyPrim1 prim = \case
   Clo{} -> Err $ "cant apply prim1 to arg1-closure: " <> show prim
-  Base bv1 -> Base <$> (returnOrError $ Builtin.apply1 prim bv1)
+  Base bv1 -> Base <$> (returnOrError $ Builtin.apply1 cla prim bv1)
 
 applyPrim2 :: Builtin.Prim2 -> Value -> Value -> M Value
 applyPrim2 prim = \case

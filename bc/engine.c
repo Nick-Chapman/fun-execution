@@ -274,7 +274,7 @@ static void enter_clo(value* clo) {
 }
 
 
-int main() {
+int main(int argc, char* argv[]) {
 
   init_max_code_ref();
   init_max_pap();
@@ -440,9 +440,24 @@ int main() {
       push_stack((value)res);
       break;
     }
-    case '&': {
+    case 'S': {
       long a = (long)argument();
       char* res = string_of_int(a);
+      push_stack((value)res);
+      break;
+    }
+    case 'R': {
+      char* s = (char*)argument();
+      long n = 0;
+      sscanf(s,"%ld",&n);
+      if (debug) printf("R: s='%s', n=%ld\n",s,n);
+      push_stack((value)n);
+      break;
+    }
+    case 'A': {
+      long n = (long)argument();
+      char* res = n<argc ? argv[n] : "";
+      if (debug) printf("A: (argc=%d) a=%ld -> s='%s'\n",argc,n,res);
       push_stack((value)res);
       break;
     }

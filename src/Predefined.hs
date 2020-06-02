@@ -17,6 +17,8 @@ defs = mkDefs
   , ("false", ECon $ Builtin.Bool False)
   , ("^", binop Builtin.StringAppend)
   , ("showInt", unop Builtin.ShowInt)
+  , ("readInt", unop Builtin.ReadInt)
+  , ("argv", unop Builtin.Argv)
   ]
 
 

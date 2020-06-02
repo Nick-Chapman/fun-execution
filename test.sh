@@ -11,7 +11,7 @@ run() {
 run thrice-thrice.exe
 run nfib.exe
 run triangle.exe
-run fact.exe
+run fact.exe 6
 run nthPrime.exe
 run combinator-fact.exe
 run list-processing.exe

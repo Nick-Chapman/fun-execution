@@ -1,12 +1,12 @@
 
 -- The builtin values and primitives, which any execution engine must support.
-module Builtin(BuiltinError,BV(..),Prim1(..),Prim2(..),apply1,apply2) where
+module Builtin(BuiltinError,BV(..),Prim1(..),Prim2(..),apply1,apply2,CommandLineArgs(..)) where
 
 -- The builtins are stratified by arity.
 data BV = Num Int | Str String | Bool Bool
   deriving (Eq)
 
-data Prim1 = ShowInt
+data Prim1 = ShowInt | ReadInt | Argv
   deriving (Eq,Ord,Show)
 
 data Prim2 = Add | Sub | Mul | ModInt | EqInt | LessInt | StringAppend
@@ -21,10 +21,20 @@ instance Show BV where
 data BuiltinError = BuiltinError { unBuiltinError :: String }
 instance Show BuiltinError where show = unBuiltinError
 
-apply1 :: Prim1 -> BV -> Either BuiltinError BV
-apply1 prim = case prim of
+data CommandLineArgs = CommandLineArgs { argv :: Int -> String }
+
+apply1 :: CommandLineArgs -> Prim1 -> BV -> Either BuiltinError BV
+apply1 CommandLineArgs{argv} prim = case prim of
   ShowInt -> \case
     Num n1 -> Right (Str (show n1))
+    v -> Left $ BuiltinError $ "type error: " <> show (prim,v)
+
+  ReadInt -> \case
+    Str s1 -> Right (Num (read s1))
+    v -> Left $ BuiltinError $ "type error: " <> show (prim,v)
+
+  Argv -> \case
+    Num n -> Right (Str (argv n))
     v -> Left $ BuiltinError $ "type error: " <> show (prim,v)
 
 apply2 :: Prim2 -> (BV,BV) -> Either BuiltinError BV
