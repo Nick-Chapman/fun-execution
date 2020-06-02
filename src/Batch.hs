@@ -17,7 +17,7 @@ main = do
     [x] -> return x
     xs -> error $ "unexpected args: " ++ show xs
   let infile = "fun/"++base++".fun"
-  let outfile = "gen/"++base++".c"
+  let outfile = "_build/c/"++base++".c"
   batch infile outfile
 
 batch :: FilePath -> FilePath -> IO ()

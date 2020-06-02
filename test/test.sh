@@ -1,6 +1,6 @@
 #/bin/bash
 
-export PATH=exe
+export PATH=_build/exe
 
 run() {
     echo '--------------------------------------------------'
@@ -8,15 +8,16 @@ run() {
     echo '--------------------------------------------------'
     $@
 }
-run thrice-thrice.exe
-run nfib.exe
-run triangle.exe
-run fact.exe 6
-run nthPrime.exe
-run combinator-fact.exe
-run list-processing.exe
-run over.exe
-run pap-over-app.exe
+
+run thrice-thrice
+run nfib
+run triangle
+run fact 6
+run nthPrime
+run combinator-fact
+run list-processing
+run over
+run pap-over-app
 
 # Need to print string values properly to enable this...
 #run pythagorian.exe

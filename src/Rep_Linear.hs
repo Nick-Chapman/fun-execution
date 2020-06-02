@@ -33,7 +33,7 @@ data Code = Code
 instance Show Code where
   show Code{lits,defs} =
     unlines $
-    [ "#include \"../bc/value.h\""
+    [ "#include \"value.h\""
     , "value lits[] = {"
     ] ++
     [ "   (value) " ++ show lit ++ "," | lit <- lits ] ++

@@ -3,7 +3,4 @@
 *~
 stack.yaml.lock
 .history
-*.o
-*.exe
-gen/*.c
-test.out
+_build/**
