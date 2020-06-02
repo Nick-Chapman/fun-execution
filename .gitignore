@@ -6,4 +6,4 @@ stack.yaml.lock
 *.o
 *.exe
 gen/*.c
-run/*.out
+test.out

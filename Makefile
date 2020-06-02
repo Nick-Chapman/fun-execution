@@ -1,10 +1,15 @@
 
-all: run/combinator-fact.out run/fact.out run/list-processing.out run/nfib.out run/nthPrime.out run/over.out run/pap-over-app.out run/pythagorian.out run/thrice-thrice.out run/triangle.out
+top: regression.diffs
+
+regression.diffs: test.expected test.out
+	diff $^
+
+EXES = exe/combinator-fact.exe exe/fact.exe exe/list-processing.exe exe/nfib.exe exe/nthPrime.exe exe/over.exe exe/pap-over-app.exe exe/pythagorian.exe exe/thrice-thrice.exe exe/triangle.exe
+
+test.out: test.sh $(EXES)
+	./test.sh > $@
 
 .PRECIOUS: gen/%.c obj/%.o exe/%.exe
-
-run/%.out: exe/%.exe
-	mkdir -p run; $< | tee $@
 
 exe/%.exe: bc/engine.o obj/%.o
 	mkdir -p exe; gcc $^ -o $@
