@@ -23,7 +23,7 @@ $(BUILD)/obj/%.o: $(BUILD)/c/%.c $(BC)/value.h
 	mkdir -p $(BUILD)/obj; gcc -I$(BC) -Wall -Werror -c $< -o $@
 
 $(BUILD)/c/%.c: fun/%.fun src/*.hs
-	mkdir -p $(BUILD)/c; stack run -- $(patsubst $(BUILD)/c/%.c,%,$@)
+	mkdir -p $(BUILD)/c; stack run batch -- $(patsubst $(BUILD)/c/%.c,%,$@)
 
 $(BUILD)/engine.o: $(BC)/engine.c $(BC)/value.h
 	mkdir -p $(BUILD); gcc -Wall -Werror -c $< -o $@

@@ -49,8 +49,6 @@ C - Export the bytecode & code execution engine in rust/C.
 
 TODO
 - rewrite this README
-- setup expect/regression tests for examples
-- reinstate console (how build multiple executable in stack?)
 - have batch compiled take a flag to control NBE/not
 - run examples with/out NBE - have expect files for both
 - simple access to argv at runtime, sp progs can be abstract wr.t some arg-value

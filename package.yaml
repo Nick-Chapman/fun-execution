@@ -39,7 +39,15 @@ ghc-options:
 - -rtsopts
 - -with-rtsopts=-N
 
+library:
+  source-dirs: src
+
 executables:
-  main.exe:
-    main:                Main.hs
-    source-dirs:         src
+
+  console:
+    main:                apps/console.hs
+    dependencies:        fun-execution
+
+  batch:
+    main:                apps/batch.hs
+    dependencies:        fun-execution
