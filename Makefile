@@ -4,29 +4,33 @@ top: regression.diffs
 all: $(EXES)
 
 EXAMPLES = combinator-fact fact list-processing nfib nthPrime over pap-over-app pythagorian thrice-thrice triangle
+EXES = $(patsubst %, $(OUT)/%, $(EXAMPLES))
 BC = bc
-BUILD = _build
-EXES = $(patsubst %, $(BUILD)/exe/%, $(EXAMPLES))
 
-.PRECIOUS: $(BUILD)/c/%.c $(BUILD)/obj/%.o $(BUILD)/exe/%
+OUT = _build
 
-regression.diffs: test/test.expected $(BUILD)/test.out
+.PRECIOUS: $(OUT)/%.c $(OUT)/%.o $(OUT)/%
+
+regression.diffs: test/test.expected $(OUT)/test.out
 	diff $^
 
-$(BUILD)/test.out: test/test.sh $(EXES)
+$(OUT)/test.out: test/test.sh $(EXES)
 	test/test.sh > $@
 
-$(BUILD)/exe/%: $(BUILD)/main.o $(BUILD)/engine.o $(BUILD)/obj/%.o
-	mkdir -p $(BUILD)/exe; gcc $^ -o $@
+$(OUT)/%: $(OUT)/main.o $(OUT)/engine.o $(OUT)/%.o
+	gcc $^ -o $@
 
-$(BUILD)/obj/%.o: $(BUILD)/c/%.c $(BC)/value.h
-	mkdir -p $(BUILD)/obj; gcc -I$(BC) -Wall -Werror -c $< -o $@
+$(OUT)/%.o: $(OUT)/%.c $(BC)/value.h .dir
+	gcc -I$(BC) -Wall -Werror -c $< -o $@
 
-$(BUILD)/c/%.c: fun/%.fun src/*.hs
-	mkdir -p $(BUILD)/c; stack run batch -- $(patsubst $(BUILD)/c/%.c,%,$@)
+$(OUT)/%.c: fun/%.fun src/*.hs .dir
+	stack run batch $< $@
 
-$(BUILD)/engine.o: $(BC)/engine.c $(BC)/value.h
-	mkdir -p $(BUILD); gcc -Wall -Werror -c $< -o $@
+$(OUT)/engine.o: $(BC)/engine.c $(BC)/value.h .dir
+	gcc -Wall -Werror -c $< -o $@
 
-$(BUILD)/main.o: $(BC)/main.c $(BC)/value.h
-	mkdir -p $(BUILD); gcc -Wall -Werror -c $< -o $@
+$(OUT)/main.o: $(BC)/main.c $(BC)/value.h .dir
+	gcc -Wall -Werror -c $< -o $@
+
+.dir:
+	mkdir -p $(OUT)

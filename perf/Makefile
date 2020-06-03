@@ -1,32 +1,40 @@
 
-top: perf-inter
-
-BUILD = _build
-
-perf-inter: $(BUILD)/inter-2.exe
-	./$<
-
-perf-native: $(BUILD)/native-2.exe
-	./$<
-
-
-$(BUILD)/native-%.exe: $(BUILD)/native-%.o
-	gcc $^ -o $@
-
-$(BUILD)/native-%.o: native.c
-	gcc -O$(patsubst $(BUILD)/native-%.o,%,$@) -Wall -Werror -c $< -o $@
-
-
-$(BUILD)/inter-%.exe: $(BUILD)/inter-%.o $(BUILD)/engine-%.o $(BUILD)/bytecode-%.o
-	gcc $^ -o $@
+top: perf-inter-3
 
 BC = ../bc
+FUN = ../fun
 
-$(BUILD)/inter-%.o: inter.c
-	gcc -I$(BC) -O$(patsubst $(BUILD)/inter-%.o,%,$@) -Wall -Werror -c $< -o $@
+OUT = ../_build/perf
 
-$(BUILD)/bytecode-%.o: ../_build/c/nfib.c $(BC)/value.h
-	gcc -I$(BC) -O$(patsubst $(BUILD)/bytecode-%.o,%,$@) -Wall -Werror -c $< -o $@
+.PRECIOUS: $(OUT)/%
+.SECONDARY:
 
-$(BUILD)/engine-%.o: $(BC)/engine.c $(BC)/value.h
-	gcc -O$(patsubst $(BUILD)/engine-%.o,%,$@) -Wall -Werror -c $< -o $@
+perf-inter-%: $(OUT)/inter-%.exe
+	./$<
+
+perf-native-%: $(OUT)/native-%.exe
+	./$<
+
+$(OUT)/native-%.exe: $(OUT)/native-%.o
+	gcc $^ -o $@
+
+$(OUT)/native-%.o: native.c .dir
+	gcc -O$(patsubst $(OUT)/native-%.o,%,$@) -Wall -Werror -c $< -o $@
+
+$(OUT)/inter-%.exe: $(OUT)/inter-%.o $(OUT)/engine-%.o $(OUT)/nfib-%.o
+	gcc $^ -o $@
+
+$(OUT)/inter-%.o: inter.c .dir
+	gcc -I$(BC) -O$(patsubst $(OUT)/inter-%.o,%,$@) -Wall -Werror -c $< -o $@
+
+$(OUT)/engine-%.o: $(BC)/engine.c $(BC)/value.h .dir
+	gcc -I$(BC) -O$(patsubst $(OUT)/engine-%.o,%,$@) -Wall -Werror -c $< -o $@
+
+$(OUT)/nfib-%.o: $(OUT)/nfib.c $(BC)/value.h .dir
+	gcc -I$(BC) -O$(patsubst $(OUT)/nfib-%.o,%,$@) -Wall -Werror -c $< -o $@
+
+$(OUT)/nfib.c: $(FUN)/nfib.fun ../src/*.hs .dir
+	stack run batch $< $@
+
+.dir:
+	mkdir -p $(OUT)

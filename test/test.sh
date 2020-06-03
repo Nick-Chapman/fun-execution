@@ -1,6 +1,6 @@
 #/bin/bash
 
-export PATH=_build/exe
+export PATH=_build
 
 run() {
     echo '--------------------------------------------------'
