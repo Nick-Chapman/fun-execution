@@ -30,7 +30,7 @@ inline static int digit();
 inline static value argument();
 inline static void push_stack(value v);
 inline static void push_arg(value v);
-inline static void push_continuation(int codeRef,int nFree);
+inline static void push_continuation(char* code,int nFree);
 inline static void return_to_continuation(value v);
 inline static value* make_closure(int codeRef, int nFree);
 inline static void enter_closure(value* clo);
@@ -103,7 +103,8 @@ value run_engine(int argc, char* argv[]) {
     case 'p': {
       int codeRef = digit();
       int nFree = digit();
-      push_continuation(codeRef,nFree);
+      char* futurecode = get_code_ref(codeRef);
+      push_continuation(futurecode,nFree);
       for (int i = 0; i < nFree; i++) {
         value freeVal = argument();
         kont[i + BaseContinuationSize] = freeVal;
@@ -255,10 +256,10 @@ void init_machine() {
 }
 
 
-void push_continuation(int codeRef,int nFree) {
+void push_continuation(char* code,int nFree) {
   value* k = heap_alloc(nFree + BaseContinuationSize);
   k[0] = (value)(long)nFree;
-  k[1] = prog[codeRef];
+  k[1] = code;
   k[2] = kont;
   kont = k;
 }
@@ -279,7 +280,7 @@ void return_to_continuation(value v) {
 value* make_closure(int codeRef, int nFree) {
   value* clo = heap_alloc(nFree+1);
   push_stack(clo);
-  clo[0] = prog[codeRef];
+  clo[0] = get_code_ref(codeRef);
   return clo;
 }
 
@@ -315,15 +316,12 @@ value* make_pap(int got, int need) {
 
 void push_overApp(int got, int need) {
   unsigned extra = got - need;
-  value* over = heap_alloc(extra + BaseContinuationSize);
-  over[0] = (value)(long)extra;
-  over[1] = get_overapp_extra(extra);
-  over[2] = kont;
+  char* futureCode = get_overapp_extra(extra);
+  push_continuation(futureCode,extra);
   for (int i = 0; i < extra; i++) {
     value v = stack[i+need];
-    over[i + BaseContinuationSize] = v;
+    kont[i + BaseContinuationSize] = v;
   }
-  kont = over;
   sp -= extra; //adjust for the number of args stashed in the oveapp kont
 }
 
@@ -399,7 +397,9 @@ char next() {
 #ifndef NDEBUG
   steps++;
 #endif
-  return *code++;
+  char byte = *code++;
+  //printf("[%d] '%c'\n",steps,byte);
+  return byte;
 }
 
 int digit() {
@@ -472,7 +472,7 @@ static char* overapp_code[] =
 // descriptor word. All this is needed anyway to implement GC.
 
 static bool_t temp_looks_like_string(value v) {
-  return v > (value)(1<<20);
+  return v > (value)(1L<<40);
 }
 
 void run_engine_show_info(int argc, char* argv[]) {
