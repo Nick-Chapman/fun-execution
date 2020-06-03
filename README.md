@@ -55,3 +55,32 @@ TODO
 - stop creating continuations in the heap
 - bench nfib!
 - GC
+
+
+Wed Jun  3 19:40:45 2020
+
+perf notes...
+
+nfib, in nfibs/us  [us = micro-second]
+
+native -O
+0 390
+1 540
+2 830
+3 1100
+
+inter -O (initial)
+0 3.9
+1 6.5
+2 10
+3 11.3
+
+inter -O (cleanup, inlining, cut some runtime checks)
+0 4.48
+1 inlining failed in call to ‘argument’: --param large-function-growth limit reached [-Werror=inline]
+2 16.9
+3 17.1
+
+
+TODO: fix -O1
+reinstate the checks on a -D flag
