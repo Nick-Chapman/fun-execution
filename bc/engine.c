@@ -52,8 +52,6 @@ static value* kont;
 static value* frame;
 static value* this_closure;
 
-static value returned_value;
-
 value run_engine(int argc, char* argv[]) {
   init_machine();
   char instr = 0;
@@ -186,7 +184,7 @@ value run_engine(int argc, char* argv[]) {
       exit(1);
     }
   }
-  return returned_value;
+  return stack[0];
 }
 
 #ifndef NDEBUG
@@ -260,7 +258,6 @@ void push_continuation(int codeRef,int nFree) {
 }
 
 void return_to_continuation(value v) {
-  returned_value = v;
   code = kont[0];
   frame = &kont[2];
   kont = kont[1];
