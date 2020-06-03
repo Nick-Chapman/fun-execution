@@ -22,7 +22,7 @@ int main() {
     double duration = (end-start)/1000000.0;
     double nfibs_per_ms = result / (end - start);
 
-    printf("n = %d, res = %ld, duration(s) = %.3g, nfibs_per_ms = %g\n",
+    printf("n = %d, res = %ld, duration(s) = %.3g, speed(nfibs/us) = %g\n",
            n, result, duration, nfibs_per_ms);
   }
 }
