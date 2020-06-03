@@ -2,11 +2,16 @@
 
 export PATH=_build
 
+flag=$1 # may be -nn
+
+echo Running tests with flags: $flag
+
 run() {
+    prog=$1; shift
     echo '--------------------------------------------------'
-    echo "$@"
+    echo $prog "$@"
     echo '--------------------------------------------------'
-    $@
+    $prog$flag "$@"
 }
 
 run fact 6

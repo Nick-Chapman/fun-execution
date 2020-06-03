@@ -1,61 +1,61 @@
-Running tests with flags:
+Running tests with flags: -nn
 --------------------------------------------------
 fact 6
 --------------------------------------------------
 the final result is: 720
-heap used, 20 cells
-#steps = 196
+heap used, 113 cells
+#steps = 576
 --------------------------------------------------
 triangle 100
 --------------------------------------------------
 the final result is: 5050
-heap used, 7 cells
-#steps = 2244
+heap used, 1631 cells
+#steps = 8326
 --------------------------------------------------
 nfib 10
 --------------------------------------------------
 the final result is: 177
-heap used, 618 cells
-#steps = 5308
+heap used, 3191 cells
+#steps = 15856
 --------------------------------------------------
 nthPrime 10
 --------------------------------------------------
 the final result is: 29
-heap used, 2675 cells
-#steps = 16671
+heap used, 6233 cells
+#steps = 38885
 --------------------------------------------------
 thrice-thrice
 --------------------------------------------------
 the final result is: 73
-heap used, 0 cells
-#steps = 148
+heap used, 99 cells
+#steps = 905
 --------------------------------------------------
 combinator-fact
 --------------------------------------------------
 the final result is: 720
-heap used, 9545 cells
-#steps = 62072
+heap used, 13633 cells
+#steps = 86631
 --------------------------------------------------
 list-processing
 --------------------------------------------------
 the final result is: 338450
-heap used, 1825 cells
-#steps = 11515
+heap used, 4904 cells
+#steps = 27761
 --------------------------------------------------
 over
 --------------------------------------------------
 the final result is: 200
-heap used, 11 cells
-#steps = 52
+heap used, 22 cells
+#steps = 97
 --------------------------------------------------
 pap-over-app
 --------------------------------------------------
 the final result is: 105
-heap used, 0 cells
-#steps = 220
+heap used, 401 cells
+#steps = 1574
 --------------------------------------------------
 pythagorian
 --------------------------------------------------
 the final result is: '(3,4,5)(5,12,13)(6,8,10)(8,15,17)(9,12,15)(12,16,20)'
-heap used, 108878 cells
-#steps = 570966
+heap used, 205216 cells
+#steps = 1049991
