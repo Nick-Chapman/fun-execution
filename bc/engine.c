@@ -40,8 +40,6 @@ noinline static char* string_concat(char* s1, char* s2);
 noinline static char* get_pap_got_need(unsigned got, unsigned need);
 noinline static char* get_overapp_extra(unsigned extra);
 
-static unsigned steps = 0;
-
 static value* stack;
 static value* args;
 
@@ -384,8 +382,14 @@ char* string_concat(char* s1, char* s2) {
   return res;
 }
 
+#ifndef NDEBUG
+static unsigned steps = 0;
+#endif
+
 char next() {
+#ifndef NDEBUG
   steps++;
+#endif
   return *code++;
 }
 
@@ -457,5 +461,7 @@ void run_engine_show_info(int argc, char* argv[]) {
   value result = run_engine(argc,argv);
   printf("the final result is: %ld\n", (long)result);
   printf("heap used, %ld cells\n", (hp-heap));
+#ifndef NDEBUG
   printf("#steps = %d\n", steps);
+#endif
 }
