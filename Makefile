@@ -9,7 +9,8 @@ BC = bc
 
 OUT = _build
 
-.PRECIOUS: $(OUT)/%.c $(OUT)/%.o $(OUT)/%
+.PRECIOUS: $(OUT)/%
+.SECONDARY:
 
 regression.diffs: test/test.expected $(OUT)/test.out
 	diff $^

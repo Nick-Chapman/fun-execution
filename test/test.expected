@@ -49,4 +49,6 @@ heap used, 11 cells
 --------------------------------------------------
 pap-over-app
 --------------------------------------------------
-stack exhausted
+the final result is: 105
+heap used, 0 cells
+#steps = 220

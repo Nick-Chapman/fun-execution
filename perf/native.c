@@ -14,7 +14,7 @@ int main() {
 
   int n = 39;
 
-  for (int i=0;i<20;i++) {
+  for (;;) {
     clock_t start = clock();
     long result = nfib(n);
     clock_t end = clock();

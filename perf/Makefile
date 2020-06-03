@@ -28,7 +28,7 @@ $(OUT)/inter-%.o: inter.c .dir
 	gcc -I$(BC) -O$(patsubst $(OUT)/inter-%.o,%,$@) -Wall -Werror -c $< -o $@
 
 $(OUT)/engine-%.o: $(BC)/engine.c $(BC)/value.h .dir
-	gcc -I$(BC) -O$(patsubst $(OUT)/engine-%.o,%,$@) -Wall -Werror -c $< -o $@
+	gcc -I$(BC) -O$(patsubst $(OUT)/engine-%.o,%,$@) --param large-function-growth=2000 -Winline -Wall -Werror -c $< -o $@
 
 $(OUT)/nfib-%.o: $(OUT)/nfib.c $(BC)/value.h .dir
 	gcc -I$(BC) -O$(patsubst $(OUT)/nfib-%.o,%,$@) -Wall -Werror -c $< -o $@
