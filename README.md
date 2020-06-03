@@ -84,3 +84,8 @@ inter -O (cleanup, inlining, cut some runtime checks)
 
 TODO: fix -O1
 reinstate the checks on a -D flag
+-DONE
+
+
+Add flag (`-nn`) to batch compiler to control opt (i.e.allow NBE to be switched off)
+perf... goes from about 18 --> 5.2 -- WOW

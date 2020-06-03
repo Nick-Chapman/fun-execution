@@ -33,8 +33,10 @@ $(OUT)/engine-%.o: $(BC)/engine.c $(BC)/value.h .dir
 $(OUT)/nfib-%.o: $(OUT)/nfib.c $(BC)/value.h .dir
 	gcc -I$(BC) -O$(patsubst $(OUT)/nfib-%.o,%,$@) -Wall -Werror -c $< -o $@
 
-$(OUT)/nfib.c: $(FUN)/nfib.fun ../src/*.hs .dir
-	stack run batch $< $@
+MAYBE_FLAG_TO_AVOID_NBE = #-nn
+
+$(OUT)/nfib.c: $(FUN)/nfib.fun ../src/*.hs .dir Makefile
+	stack run batch -- $(MAYBE_FLAG_TO_AVOID_NBE) $< $@
 
 .dir:
 	mkdir -p $(OUT)

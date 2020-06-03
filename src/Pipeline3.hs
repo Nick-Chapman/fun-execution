@@ -1,5 +1,5 @@
 
-module Pipeline3 (CompilationError,Code,Value,Instrumentation,check,compile,execute,quietCompile) where
+module Pipeline3 (CompilationError,Code,Value,Instrumentation,check,compile,execute,quietCompile,Opt(..)) where
 
 import qualified System.Console.ANSI as AN
 
@@ -16,6 +16,8 @@ import Trans_CC2Linear (linearize)
 import Eval_ClosureConverted (execute)
 import qualified Rep_Linear as Lin
 
+data Opt = NoOpt | NbE
+
 data CompilationError = CompilationError { unCompilationError :: String }
 instance Show CompilationError where show = unCompilationError
 
@@ -24,17 +26,19 @@ check exp = (CompilationError . show) <$> checkClosed exp
 
 -- quick hackto allow switch NBE on/off -- TODO: tidy this up
 -- TODO: compile should redo the check
-compile :: Bool -> Exp -> IO (Either CompilationError Code)
-compile nbe exp = do
+compile :: Opt -> Exp -> IO (Either CompilationError Code)
+compile opt exp = do
   case checkClosed exp of
     Just err -> return $ Left $ CompilationError $ show err
     Nothing -> do
       putStr $ col AN.Yellow (show exp)
       exp' <-
-        if not nbe then pure exp else do
-          let exp' = normalize exp
-          putStr $ col AN.Green (show exp')
-          pure exp'
+        case opt of
+          NoOpt -> pure exp
+          NbE -> do
+            let exp' = normalize exp
+            putStr $ col AN.Green (show exp')
+            pure exp'
       let anf = flatten exp'
       putStr $ col AN.Blue (show anf)
       let cc = convert anf
@@ -50,9 +54,9 @@ col c s =
   AN.setSGRCode [AN.SetColor AN.Foreground AN.Vivid AN.White]
 
 
-quietCompile :: Exp -> Lin.Code
-quietCompile exp = do
-  let exp' = normalize exp
+quietCompile :: Opt -> Exp -> Lin.Code
+quietCompile opt exp = do
+  let exp' = case opt of NoOpt -> exp; NbE -> normalize exp
   let anf = flatten exp'
   let cc = convert anf
   let lin = linearize cc

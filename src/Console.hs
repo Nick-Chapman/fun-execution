@@ -10,7 +10,7 @@ import qualified System.Console.Haskeline.History as HL
 
 import Rep_Ast (Def(..),wrapDef)
 import Parse (parse)
-import Pipeline (check,compile,execute)
+import Pipeline3 (check,compile,execute,Opt(..))
 import qualified Predefined (defs)
 import Builtin (CommandLineArgs(..))
 
@@ -22,14 +22,14 @@ main = do
 
 data Conf = Conf
   { funFile :: FilePath
-  , nbe :: Bool
+  , opt :: Opt
   , cla ::CommandLineArgs
   }
 
 defaultConf :: Conf
 defaultConf = Conf
   { funFile = ".history"
-  , nbe = True
+  , opt = NbE
   , cla = CommandLineArgs { argv = \n -> show (10+n) }
   }
 
@@ -38,7 +38,7 @@ parseArgs args = loop args defaultConf
   where
     loop args conf = case args of
       [] -> conf
-      "-nn":rest -> loop rest $ conf { nbe = False }
+      "-nn":rest -> loop rest $ conf { opt = NoOpt }
       funFile:rest -> loop rest $ conf { funFile }
 
 start :: Conf -> HL.InputT IO ()
@@ -87,7 +87,7 @@ repl conf n defs = do
 
 -- parse-eval-print
 pep :: Conf -> (String -> IO ()) -> String -> [Def] -> IO (Maybe [Def])
-pep Conf{nbe,cla} put line defs = do
+pep Conf{opt,cla} put line defs = do
   case parse line of
 
     Left err -> do
@@ -110,7 +110,7 @@ pep Conf{nbe,cla} put line defs = do
     Right (Just (Right exp)) -> do
       put line
       let expWithContext = List.foldl (flip wrapDef) exp defs
-      compile nbe expWithContext >>= \case
+      compile opt expWithContext >>= \case
         Left err -> do
           putStrLn $ col AN.Red (show err)
           return Nothing

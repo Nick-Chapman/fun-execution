@@ -6,7 +6,7 @@ import qualified Data.List as List
 import qualified System.Console.ANSI as AN
 
 import Parse (parse)
-import Pipeline3 (check,quietCompile)
+import Pipeline3 (check,quietCompile,Opt(..))
 import Rep_Ast (Def(..),wrapDef)
 import qualified Predefined (defs)
 import qualified Rep_Linear as Lin
@@ -14,18 +14,18 @@ import qualified Rep_Linear as Lin
 main :: IO ()
 main = do
   getArgs >>= \case
-    [infile,outfile] -> batch infile outfile
+    ["-nn",infile,outfile] -> batch NoOpt infile outfile
+    [infile,outfile] -> batch NbE infile outfile
     xs -> error $ "Batch.main: unexpected args: " ++ show xs
 
-
-batch :: FilePath -> FilePath -> IO ()
-batch i o = do
+batch :: Opt -> FilePath -> FilePath -> IO ()
+batch opt i o = do
   s <- readFile i
-  lin <- compileProgLines $ lines s
+  lin <- compileProgLines opt $ lines s
   writeFile o (show lin)
 
-compileProgLines :: [String] ->  IO Lin.Code
-compileProgLines xs = loop Predefined.defs xs
+compileProgLines :: Opt -> [String] ->  IO Lin.Code
+compileProgLines opt xs = loop Predefined.defs xs
   where
     loop defs = \case
       line:rest -> do
@@ -37,7 +37,7 @@ compileProgLines xs = loop Predefined.defs xs
           Def name exp : _ -> do
             putStrLn $ "compiling definition: " ++ show name
             let expWithContext = List.foldl (flip wrapDef) exp defs
-            let lin = quietCompile expWithContext
+            let lin = quietCompile opt expWithContext
             return lin
 
 compileLine :: [Def] -> String -> IO [Def]
