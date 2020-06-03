@@ -8,9 +8,6 @@
 #define heap_size 100000000
 #define temps_size 100
 
-extern value lits[];
-extern char* prog[];
-
 static char* pap_code[];
 static char* overapp_code[];
 
@@ -20,7 +17,7 @@ static value heap[heap_size];
 static value temps1[temps_size];
 static value temps2[temps_size];
 
-#define noinline __attribute__ ((noinline)) // useful when profiling
+#define noinline __attribute__ ((noinline))
 
 inline static char* get_code_ref(unsigned n);
 inline static value* heap_alloc(int n);
@@ -194,7 +191,60 @@ value run_engine(int argc, char* argv[]) {
   return returned_value;
 }
 
+#ifndef NDEBUG
+static unsigned max_code_ref = 0;
+static void init_max_code_ref() {
+  unsigned i = 0;
+  for (; prog[i]; i++);
+  max_code_ref = i;
+}
+static void check_code_ref(unsigned n) {
+  if (n >= max_code_ref) {
+    printf("check_code_ref: n too big: %d>=%d\n", n, max_code_ref);
+    exit(1);
+  }
+}
+static unsigned max_pap_ref = 0;
+static void init_max_pap_ref() {
+  unsigned i = 0;
+  for (; pap_code[i]; i++);
+  max_pap_ref = i;
+}
+void check_pap_ref(unsigned got, unsigned need, unsigned n) {
+  if (got<1) {
+    printf("check_pap_ref (got<1): got=%d\n", got); exit(1);
+  }
+  if (need<2) {
+    printf("check_pap_ref (need<2): need=%d\n", need); exit(1);
+  }
+  if (got >= need) {
+    printf("check_pap_ref (got>=need): %d>=%d\n", got,need); exit(1);
+  }
+  if (n >= max_pap_ref) {
+    printf("check_pap_ref: n too big: %d>=%d\n", n, max_pap_ref);
+    exit(1);
+  }
+}
+static unsigned max_overapp_ref = 0;
+static void init_max_overapp_ref() {
+  unsigned i = 0;
+  for (; overapp_code[i]; i++);
+  max_overapp_ref = i;
+}
+void check_overapp_ref(unsigned n) {
+  if (n >= max_overapp_ref) {
+    printf("check_overapp_ref: n too big: %d>=%d\n", n, max_overapp_ref);
+    exit(1);
+  }
+}
+#endif
+
 void init_machine() {
+#ifndef NDEBUG
+  init_max_code_ref();
+  init_max_pap_ref();
+  init_max_overapp_ref();
+#endif
   kont = &final_continuation[0];
   code = get_code_ref(0); // can fail if there is no code
   stack = &temps1[0];
@@ -285,15 +335,24 @@ void push_arg(value v) {
 }
 
 char* get_code_ref(unsigned n) {
+#ifndef NDEBUG
+  check_code_ref(n);
+#endif
   return prog[n];
 }
 
 char* get_pap_got_need(unsigned got, unsigned need) {
   unsigned n = ((need-1) * (need-2)) / 2 + got - 1;
+#ifndef NDEBUG
+  check_pap_ref(got,need,n);
+#endif
   return pap_code[n];
 }
 
 char* get_overapp_extra(unsigned extra) {
+#ifndef NDEBUG
+  check_overapp_ref(extra-1);
+#endif
   return overapp_code[extra-1];
 }
 
