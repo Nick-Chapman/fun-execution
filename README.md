@@ -49,11 +49,13 @@ C - Export the bytecode & code execution engine in rust/C.
 
 TODO
 - rewrite this README
-- have batch compiled take a flag to control NBE/not
-- run examples with/out NBE - have expect files for both
+- have batch compiled take a flag to control NBE/not --DONE
+- run examples with/out NBE - have expect files for both -- DONE
+
 - tag values as number/string/closure, so can print correctly, and also needed when do GC
+
 - stop creating continuations in the heap
-- bench nfib!
+- bench nfib! -- DONE
 - GC
 
 
