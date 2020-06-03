@@ -320,9 +320,18 @@ void push_overApp(int got, int need) {
   sp -= extra; //adjust for the number of args stashed in the oveapp kont
 }
 
+#ifndef NDEBUG
+static value* heap_end = &heap[heap_size];
+#endif
+
 value* heap_alloc(int n) {
   value* res = hp;
   hp += n;
+#ifndef NDEBUG
+  if (hp > heap_end) {
+    printf("heap exhausted\n"); exit(1);
+  }
+#endif
   return res;
 }
 
