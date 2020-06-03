@@ -5,6 +5,8 @@
 
 #include "value.h"
 
+typedef int bool_t;
+
 #define heap_size 100000000
 #define temps_size 100
 
@@ -454,9 +456,22 @@ static char* overapp_code[] =
    0,
   };
 
+
+// Short term hack to allow adding pythagorian to regression.  The real solution is to tag
+// values to distinguish unboxed numbers from heap objects. And for heap objects to have a
+// descriptor word. All this is needed anyway to implement GC.
+
+static bool_t temp_looks_like_string(value v) {
+  return v > (value)(1<<20);
+}
+
 void run_engine_show_info(int argc, char* argv[]) {
   value result = run_engine(argc,argv);
-  printf("the final result is: %ld\n", (long)result);
+  if (temp_looks_like_string(result)) {
+    printf("the final result is: '%s'\n", (char*)result);
+  } else {
+    printf("the final result is: %ld\n", (long)result);
+  }
   printf("heap used, %ld cells\n", (hp-heap));
 #ifndef NDEBUG
   printf("#steps = %d\n", steps);

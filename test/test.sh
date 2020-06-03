@@ -19,8 +19,4 @@ run combinator-fact
 run list-processing
 run over
 run pap-over-app
-
-# Need to print string values properly to enable this...
-#run pythagorian.exe
-
-exit 0
+run pythagorian
