@@ -3,59 +3,59 @@ Running tests with flags: -nn
 fact 6
 --------------------------------------------------
 the final result is: 720
-heap used, 10 cells
+heap used, 134 cells
 #steps = 513
 --------------------------------------------------
 triangle 100
 --------------------------------------------------
 the final result is: 5050
-heap used, 13 cells
+heap used, 1935 cells
 #steps = 7220
 --------------------------------------------------
 nfib 10
 --------------------------------------------------
 the final result is: 177
-heap used, 10 cells
+heap used, 3810 cells
 #steps = 13917
 --------------------------------------------------
 nthPrime 10
 --------------------------------------------------
 the final result is: 29
-heap used, 1666 cells
+heap used, 7141 cells
 #steps = 36404
 --------------------------------------------------
 thrice-thrice
 --------------------------------------------------
 the final result is: 73
-heap used, 13 cells
+heap used, 128 cells
 #steps = 863
 --------------------------------------------------
 combinator-fact
 --------------------------------------------------
 the final result is: 720
-heap used, 8659 cells
+heap used, 15276 cells
 #steps = 84941
 --------------------------------------------------
 list-processing
 --------------------------------------------------
 the final result is: 338450
-heap used, 1660 cells
+heap used, 5614 cells
 #steps = 25939
 --------------------------------------------------
 over
 --------------------------------------------------
 the final result is: 200
-heap used, 12 cells
+heap used, 25 cells
 #steps = 93
 --------------------------------------------------
 pap-over-app
 --------------------------------------------------
 the final result is: 105
-heap used, 50 cells
+heap used, 459 cells
 #steps = 1305
 --------------------------------------------------
 pythagorian
 --------------------------------------------------
 the final result is: '(3,4,5)(5,12,13)(6,8,10)(8,15,17)(9,12,15)(12,16,20)'
-heap used, 89560 cells
+heap used, 228470 cells
 #steps = 983236

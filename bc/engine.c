@@ -7,14 +7,15 @@
 
 typedef int bool_t;
 
-#define kont_stack_size 10000
-static value kont_stack[kont_stack_size];
+#define BaseContinuationSize 3
 
-#define heap_size 100000
+#define heap_size 100000000
 #define temps_size 100
 
 static char* pap_code[];
 static char* overapp_code[];
+
+static value final_continuation[] = { (value)0, (value)"", (value)0 };
 
 static value heap[heap_size];
 static value temps1[temps_size];
@@ -29,7 +30,7 @@ inline static int digit();
 inline static value argument();
 inline static void push_stack(value v);
 inline static void push_arg(value v);
-inline static void push_continuation(char* code,int nFree);
+inline static void push_continuation(int codeRef,int nFree);
 inline static void return_to_continuation(value v);
 inline static value* make_closure(int codeRef, int nFree);
 inline static void enter_closure(value* clo);
@@ -102,12 +103,11 @@ value run_engine(int argc, char* argv[]) {
     case 'p': {
       int codeRef = digit();
       int nFree = digit();
+      push_continuation(codeRef,nFree);
       for (int i = 0; i < nFree; i++) {
         value freeVal = argument();
-        kont[i] = freeVal;
+        kont[i + BaseContinuationSize] = freeVal;
       }
-      char* futureCode = get_code_ref(codeRef);
-      push_continuation(futureCode,nFree);
       break;
     }
     case 'n': {
@@ -245,11 +245,7 @@ void init_machine() {
   init_max_pap_ref();
   init_max_overapp_ref();
 #endif
-
-  kont_stack[0] = (value)0;
-  kont_stack[1] = (value)"";
-  kont = &kont_stack[2];
-
+  kont = &final_continuation[0];
   code = get_code_ref(0); // can fail if there is no code
   stack = &temps1[0];
   args = &temps2[0];
@@ -258,38 +254,32 @@ void init_machine() {
   ap = args;
 }
 
-#ifndef NDEBUG
-static value* kont_stack_end = &kont_stack[kont_stack_size];
-#endif
 
-void push_continuation(char* code,int nFree) {
-#ifndef NDEBUG
-  if (kont + (nFree+2) > kont_stack_end) {
-    printf("kont_stack exhausted\n"); exit(1);
-  }
-#endif
-  kont[nFree] = (value)(long)nFree;
-  kont[nFree + 1] = code;
-  kont += (nFree + 2);
+void push_continuation(int codeRef,int nFree) {
+  value* k = heap_alloc(nFree + BaseContinuationSize);
+  k[0] = (value)(long)nFree;
+  k[1] = prog[codeRef];
+  k[2] = kont;
+  kont = k;
 }
 
 void return_to_continuation(value v) {
-  code = kont[-1];
-  int nFree = (long)kont[-2];
-  kont -= (2 + nFree);
-  sp = stack;
+  int nFree = (long)kont[0];
+  code = kont[1];
   frame = 0;
+  sp = stack;
   for (int i = 0; i < nFree; i++) {
-    value v = kont[i];
+    value v = kont[i + BaseContinuationSize];
     push_stack(v);
   }
   push_stack(v);
+  kont = kont[2];
 }
 
 value* make_closure(int codeRef, int nFree) {
   value* clo = heap_alloc(nFree+1);
   push_stack(clo);
-  clo[0] = get_code_ref(codeRef);
+  clo[0] = prog[codeRef];
   return clo;
 }
 
@@ -325,12 +315,15 @@ value* make_pap(int got, int need) {
 
 void push_overApp(int got, int need) {
   unsigned extra = got - need;
+  value* over = heap_alloc(extra + BaseContinuationSize);
+  over[0] = (value)(long)extra;
+  over[1] = get_overapp_extra(extra);
+  over[2] = kont;
   for (int i = 0; i < extra; i++) {
     value v = stack[i+need];
-    kont[i] = v;
+    over[i + BaseContinuationSize] = v;
   }
-  char* futureCode = get_overapp_extra(extra);
-  push_continuation(futureCode,extra);
+  kont = over;
   sp -= extra; //adjust for the number of args stashed in the oveapp kont
 }
 
@@ -406,9 +399,7 @@ char next() {
 #ifndef NDEBUG
   steps++;
 #endif
-  char byte = *code++;
-  //printf("[%d] '%c'\n",steps,byte);
-  return byte;
+  return *code++;
 }
 
 int digit() {
