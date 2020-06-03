@@ -219,7 +219,7 @@ void check_pap_ref(unsigned got, unsigned need, unsigned n) {
     printf("check_pap_ref (got>=need): %d>=%d\n", got,need); exit(1);
   }
   if (n >= max_pap_ref) {
-    printf("check_pap_ref: n too big: %d>=%d\n", n, max_pap_ref);
+    printf("check_pap_ref (got=%d, need=%d): n too big: %d>=%d\n", got, need, n, max_pap_ref);
     exit(1);
   }
 }
