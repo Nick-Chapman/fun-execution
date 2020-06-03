@@ -3,59 +3,59 @@ Running tests with flags: -nn
 fact 6
 --------------------------------------------------
 the final result is: 720
-heap used, 113 cells
-#steps = 576
+heap used, 134 cells
+#steps = 513
 --------------------------------------------------
 triangle 100
 --------------------------------------------------
 the final result is: 5050
-heap used, 1631 cells
-#steps = 8326
+heap used, 1935 cells
+#steps = 7220
 --------------------------------------------------
 nfib 10
 --------------------------------------------------
 the final result is: 177
-heap used, 3191 cells
-#steps = 15856
+heap used, 3810 cells
+#steps = 13917
 --------------------------------------------------
 nthPrime 10
 --------------------------------------------------
 the final result is: 29
-heap used, 6233 cells
-#steps = 38885
+heap used, 7141 cells
+#steps = 36404
 --------------------------------------------------
 thrice-thrice
 --------------------------------------------------
 the final result is: 73
-heap used, 99 cells
-#steps = 905
+heap used, 128 cells
+#steps = 863
 --------------------------------------------------
 combinator-fact
 --------------------------------------------------
 the final result is: 720
-heap used, 13633 cells
-#steps = 86631
+heap used, 15276 cells
+#steps = 84941
 --------------------------------------------------
 list-processing
 --------------------------------------------------
 the final result is: 338450
-heap used, 4904 cells
-#steps = 27761
+heap used, 5614 cells
+#steps = 25939
 --------------------------------------------------
 over
 --------------------------------------------------
 the final result is: 200
-heap used, 22 cells
-#steps = 97
+heap used, 25 cells
+#steps = 93
 --------------------------------------------------
 pap-over-app
 --------------------------------------------------
 the final result is: 105
-heap used, 401 cells
-#steps = 1574
+heap used, 459 cells
+#steps = 1305
 --------------------------------------------------
 pythagorian
 --------------------------------------------------
 the final result is: '(3,4,5)(5,12,13)(6,8,10)(8,15,17)(9,12,15)(12,16,20)'
-heap used, 205216 cells
-#steps = 1049991
+heap used, 228470 cells
+#steps = 983236

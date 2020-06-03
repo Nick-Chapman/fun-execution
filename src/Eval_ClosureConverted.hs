@@ -64,7 +64,7 @@ run Machine{cla,i,c=code0,f,k} = case code0 of
 ret :: CommandLineArgs -> Counts -> Value -> Kont -> Result
 ret cla i v = \case
   Kdone -> (v, i)
-  Kbind {fvs,code,kont} -> run $ Machine cla i code Frame {fvs, args = [v]} kont
+  Kbind {fvs,code,kont} -> run $ Machine cla i code Frame {fvs = [], args = fvs++[v]} kont
 
 enter :: CommandLineArgs -> Counts -> Value -> [Value] -> Kont -> Result
 enter cla i func args k = case func of

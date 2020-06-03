@@ -7,13 +7,15 @@
 
 typedef int bool_t;
 
+#define BaseContinuationSize 3
+
 #define heap_size 100000000
 #define temps_size 100
 
 static char* pap_code[];
 static char* overapp_code[];
 
-static value final_continuation[] = { (value)"" };
+static value final_continuation[] = { (value)0, (value)"", (value)0 };
 
 static value heap[heap_size];
 static value temps1[temps_size];
@@ -104,7 +106,7 @@ value run_engine(int argc, char* argv[]) {
       push_continuation(codeRef,nFree);
       for (int i = 0; i < nFree; i++) {
         value freeVal = argument();
-        kont[i+2] = freeVal;
+        kont[i + BaseContinuationSize] = freeVal;
       }
       break;
     }
@@ -252,19 +254,26 @@ void init_machine() {
   ap = args;
 }
 
+
 void push_continuation(int codeRef,int nFree) {
-  value* k = heap_alloc(nFree+2);
-  k[0] = prog[codeRef];
-  k[1] = kont;
+  value* k = heap_alloc(nFree + BaseContinuationSize);
+  k[0] = (value)(long)nFree;
+  k[1] = prog[codeRef];
+  k[2] = kont;
   kont = k;
 }
 
 void return_to_continuation(value v) {
-  code = kont[0];
-  frame = &kont[2];
-  kont = kont[1];
+  int nFree = (long)kont[0];
+  code = kont[1];
+  frame = 0;
   sp = stack;
+  for (int i = 0; i < nFree; i++) {
+    value v = kont[i + BaseContinuationSize];
+    push_stack(v);
+  }
   push_stack(v);
+  kont = kont[2];
 }
 
 value* make_closure(int codeRef, int nFree) {
@@ -306,12 +315,13 @@ value* make_pap(int got, int need) {
 
 void push_overApp(int got, int need) {
   unsigned extra = got - need;
-  value* over = heap_alloc(extra+2);
-  over[0] = get_overapp_extra(extra);
-  over[1] = kont;
+  value* over = heap_alloc(extra + BaseContinuationSize);
+  over[0] = (value)(long)extra;
+  over[1] = get_overapp_extra(extra);
+  over[2] = kont;
   for (int i = 0; i < extra; i++) {
     value v = stack[i+need];
-    over[i+2] = v;
+    over[i + BaseContinuationSize] = v;
   }
   kont = over;
   sp -= extra; //adjust for the number of args stashed in the oveapp kont
@@ -449,10 +459,10 @@ static char* pap_code[] =
 
 static char* overapp_code[] =
   {
-   "t01~0",
-   "t02~0~1",
-   "t03~0~1~2",
-   "t04~0~1~2~3",
+   "t110",
+   "t2201",
+   "t33012",
+   "t440123",
    0,
   };
 
