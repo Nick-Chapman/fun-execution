@@ -10,15 +10,18 @@ extra-source-files:
 - README.md
 
 dependencies:
+- array
 - base >= 4.7 && < 5
 - containers
 - ansi-terminal
 - haskeline
 - mtl
+- time
 - transformers
 - EarleyM
 
 default-extensions:
+- BangPatterns
 - DuplicateRecordFields
 - GADTs
 - GeneralizedNewtypeDeriving
@@ -50,4 +53,8 @@ executables:
 
   batch:
     main:                apps/batch.hs
+    dependencies:        fun-execution
+
+  json-parser:
+    main:                apps/json-parser.hs
     dependencies:        fun-execution
