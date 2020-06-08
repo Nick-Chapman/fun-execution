@@ -1,6 +1,8 @@
 
 (.) f g x = f (g x)
 
+-- TODO: put the nil continuation behnd a thunk (we are strict!) does this improve performance?
+
 nil n c = n
 cons x xs n c = c x xs
 

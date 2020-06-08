@@ -25,3 +25,4 @@ run list-processing
 run over
 run pap-over-app
 run pythagorian
+run parser '12+(3*5)+(2*33)'

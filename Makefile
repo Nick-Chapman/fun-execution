@@ -3,7 +3,7 @@ top: regression.diffs regression-nn.diffs
 
 all: $(EXES)
 
-EXAMPLES = combinator-fact fact list-processing nfib nthPrime over pap-over-app pythagorian thrice-thrice triangle
+EXAMPLES = combinator-fact fact list-processing nfib nthPrime over pap-over-app pythagorian thrice-thrice triangle parser
 EXES = $(patsubst %, $(OUT)/%, $(EXAMPLES))
 EXES_NN = $(patsubst %, $(OUT)/%-nn, $(EXAMPLES))
 BC = bc
