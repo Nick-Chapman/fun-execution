@@ -128,8 +128,15 @@ returnOrError = \case
 makeOverAppK :: [Value] -> Kont -> Kont
 makeOverAppK overArgs kont = Kbind {fvs=overArgs, code, kont}
   where
+-- OLD: When a continuation is entered, free vars are found in the frame.
+{-
     code = Tail (ALoc (LocArg 0)) args
-    args = [ ALoc (LocFree i) | i <- [0 .. length overArgs - 1] ]
+    args = [ ALoc (LocFree i) | i <- [0 .. n-1] ]
+-}
+-- When a continuation is entered, free vars are pushed to the stack:
+    code = Tail (ALoc (LocArg n)) args
+    args = [ ALoc (LocArg i) | i <- [0 .. n-1] ]
+    n = length overArgs
 
 makePap :: Int -> Value -> [Value] -> Value
 makePap nMissing clo argsSoFar = clo2
