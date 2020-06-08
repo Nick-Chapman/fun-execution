@@ -20,14 +20,18 @@ type Control {-c-} = Code
 data Frame   {-f-} = Frame { fvs :: [Value], args :: [Value] }
 data Kont    {-k-} = Kdone | Kbind { fvs :: [Value], code :: Code, kont :: Kont }
 
-execute :: CommandLineArgs -> Code -> Result
+execute :: CommandLineArgs -> Code -> IO Result
 execute cla = run . install cla
 
 install :: CommandLineArgs ->  Code -> Machine
 install cla code = Machine cla counts0 code frame0 Kdone where frame0 = Frame [] []
 
-run :: Machine -> Result
-run Machine{cla,i,c=code0,f,k} = case code0 of
+run :: Machine -> IO Result
+run Machine{cla,i,c=code0,f,k} = do
+ --print "run"
+ --let Frame{fvs} = f in print (length fvs)
+ --print code0
+ case code0 of
 
   Return atom ->
     ret cla i (atomic f atom) k
@@ -61,14 +65,17 @@ run Machine{cla,i,c=code0,f,k} = case code0 of
   Branch a1 c2 c3 ->
     run $ Machine cla (tick [DoBranch] i) (branch c2 c3 (atomic f a1)) f k
 
-ret :: CommandLineArgs -> Counts -> Value -> Kont -> Result
+ret :: CommandLineArgs -> Counts -> Value -> Kont -> IO Result
 ret cla i v = \case
-  Kdone -> (v, i)
+  Kdone -> return (v, i)
   Kbind {fvs,code,kont} -> run $ Machine cla i code Frame {fvs = [], args = fvs++[v]} kont
 
-enter :: CommandLineArgs -> Counts -> Value -> [Value] -> Kont -> Result
-enter cla i func args k = case func of
-  Base{} -> error "cant enter a non-closure"
+enter :: CommandLineArgs -> Counts -> Value -> [Value] -> Kont -> IO Result
+enter cla i func args k = do
+ --print "enter"
+ --print (func,args)
+ case func of
+  Base bv -> error $ "cant enter a non-closure: " ++ show bv
   clo@Clo{fvs,arity,body}
     | arity == got -> do
         run $ Machine cla (tick [DoEnter] i) body Frame {fvs,args} k

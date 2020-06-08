@@ -31,22 +31,26 @@ compile opt exp = do
   case checkClosed exp of
     Just err -> return $ Left $ CompilationError $ show err
     Nothing -> do
-      putStr $ col AN.Yellow (show exp)
+      put $ col AN.Yellow (show exp)
       exp' <-
         case opt of
           NoOpt -> pure exp
           NbE -> do
             let exp' = normalize exp
-            putStr $ col AN.Green (show exp')
+            put $ col AN.Green (show exp')
             pure exp'
       let anf = flatten exp'
-      putStr $ col AN.Blue (show anf)
+      put $ col AN.Blue (show anf)
       let cc = convert anf
-      putStr $ col AN.Magenta (show cc)
+      put $ col AN.Magenta (show cc)
       let lin = linearize cc
-      putStr $ col AN.White (show lin)
+      put $ col AN.White (show lin)
       return $ Right cc
+  where
+    put :: String -> IO ()
+    put = if optPut then putStr else \_ -> return ()
 
+    optPut = False  -- TODO: select via opt
 
 col :: AN.Color -> String -> String
 col c s =

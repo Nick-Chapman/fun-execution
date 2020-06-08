@@ -10,7 +10,7 @@ import qualified System.Console.Haskeline.History as HL
 
 import Rep_Ast (Def(..),wrapDef)
 import Parse (parse)
-import Pipeline3 (check,compile,execute,Opt(..))
+import Pipeline (check,compile,execute,Opt(..))
 import qualified Predefined (defs)
 import Builtin (CommandLineArgs(..))
 
@@ -115,7 +115,7 @@ pep Conf{opt,cla} put line defs = do
           putStrLn $ col AN.Red (show err)
           return Nothing
         Right code -> do
-          let (value,instrumentation) = execute cla code
+          (value,instrumentation) <- execute cla code
           putStrLn $ col AN.Cyan (show value)
           putStrLn $ col AN.Green (show instrumentation)
           return Nothing

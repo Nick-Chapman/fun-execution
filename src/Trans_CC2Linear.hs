@@ -86,14 +86,23 @@ runM m = finalCode where
     Ret x -> (x,s)
     Bind m f -> let (v,s') = loop s m in loop s' (f v)
     CutCode def -> do
-      let (n, defs) = searchOrAdd def defs0
+      let (n, defs) = addMaybeCaching def defs0
       (CodeRef (Index n), s { defs })
     Literal lit -> do
       let (n, lits) = searchOrAdd lit lits0
       (LitRef (Index n), s { lits })
+
+  addMaybeCaching :: Eq a => a -> [a] -> (Int,[a])
+  addMaybeCaching =
+    if doCache then searchOrAdd else alwaysAdd
+
+  alwaysAdd :: Eq a => a -> [a] -> (Int,[a])
+  alwaysAdd k xs0 = (length xs0, xs0 ++ [k])
 
   searchOrAdd :: Eq a => a -> [a] -> (Int,[a])
   searchOrAdd k xs0 = loop 0 xs0 where
     loop i = \case
       [] -> (i, xs0 ++ [k])
       x:xs -> if x==k then (i, xs0) else loop (i+1) xs
+
+  doCache = True
