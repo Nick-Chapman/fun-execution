@@ -12,13 +12,17 @@ defs = mkDefs
   , ("*", binop Builtin.Mul)
   , ("%", binop Builtin.ModInt)
   , ("==", binop Builtin.EqInt)
+  , ("eqChar", binop Builtin.EqChar)
   , ("<", binop Builtin.LessInt)
   , ("true", ECon $ Builtin.Bool True)
   , ("false", ECon $ Builtin.Bool False)
   , ("^", binop Builtin.StringAppend)
+  , ("showChar", unop Builtin.ShowChar)
   , ("showInt", unop Builtin.ShowInt)
   , ("readInt", unop Builtin.ReadInt)
   , ("argv", unop Builtin.Argv)
+  , ("size", unop Builtin.StrSize)
+  , ("index", binop Builtin.StrIndex)
   ]
 
 

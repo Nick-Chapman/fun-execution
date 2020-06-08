@@ -57,6 +57,9 @@ lang = do
     let num = fmap (ECon . Builtin.Num) digits
     let var = fmap EVar ident
 
+    let q = symbol '\''
+    let charLit = do q; x <- token; q; return $ ECon $ Builtin.Char x
+
     let dq = symbol '"'
     let notdq = sat (/= '"')
     let stringLit = do dq; cs <- many notdq; dq; return $ ECon $ Builtin.Str cs
@@ -118,7 +121,7 @@ lang = do
             return $ EIf i t e
 
     let open = alts [num,var] -- requiring whitespace to avoid juxta-collision
-    let closed = alts [parenthesized exp, stringLit, EVar <$> nonInfixedUseOfInfixOp]
+    let closed = alts [parenthesized exp, charLit, stringLit, EVar <$> nonInfixedUseOfInfixOp]
 
     -- application: juxta position; but whitespace is required for open@open
     (app',app) <- declare "app"

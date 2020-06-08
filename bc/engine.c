@@ -39,6 +39,7 @@ inline static void function_arity_check(int need);
 noinline static void init_machine();
 noinline static value* make_pap(int got, int need);
 noinline static void push_overApp(int got, int need);
+noinline static char* string_of_char(char arg);
 noinline static char* string_of_int(long arg);
 noinline static char* string_concat(char* s1, char* s2);
 noinline static char* get_pap_got_need(unsigned got, unsigned need);
@@ -123,6 +124,13 @@ value run_engine(int argc, char* argv[]) {
       push_stack((value)res);
       break;
     }
+    case 'E': {
+      char a = (char)(long)argument();
+      char b = (char)(long)argument();
+      long res = a == b;
+      push_stack((value)res);
+      break;
+    }
     case '<': {
       long a = (long)argument();
       long b = (long)argument();
@@ -164,6 +172,18 @@ value run_engine(int argc, char* argv[]) {
       push_stack((value)res);
       break;
     }
+    case 'C': {
+      char c = (char)(long)argument();
+      char* res = string_of_char(c);
+      push_stack((value)res);
+      break;
+    }
+    case 'Z': {
+      char* a = (char*)argument();
+      long res = strlen(a);
+      push_stack((value)res);
+      break;
+    }
     case 'R': {
       char* s = (char*)argument();
       long n = 0;
@@ -182,6 +202,13 @@ value run_engine(int argc, char* argv[]) {
       char* s2 = (char*)argument();
       char* res = string_concat(s1,s2);
       push_stack((value)res);
+      break;
+      }
+    case 'I': {
+      char* s1 = (char*)argument();
+      long n = (long)argument();
+      char c = s1[n];
+      push_stack((value)(long)c);
       break;
       }
     default:
@@ -368,6 +395,15 @@ char* get_overapp_extra(unsigned extra) {
   check_overapp_ref(extra-1);
 #endif
   return overapp_code[extra-1];
+}
+
+char* string_of_char(char arg) {
+  unsigned len = 2;
+  unsigned n = 1 + ((len-1) / bytes_per_value);
+  char* res = (char*)heap_alloc(n);
+  res[0] = arg;
+  res[1] = 0;
+  return res;
 }
 
 char* string_of_int(long arg) {

@@ -84,9 +84,11 @@ showDigit n = if n<0 || n>9 then error "showDigit" else show n
 
 showPrim1 :: Builtin.Prim1 -> String
 showPrim1 = \case
+  Builtin.ShowChar -> "C"
   Builtin.ShowInt -> "S"
   Builtin.ReadInt -> "R"
   Builtin.Argv -> "A"
+  Builtin.StrSize -> "Z"
 
 showPrim2 :: Builtin.Prim2 -> String
 showPrim2 = \case
@@ -94,6 +96,8 @@ showPrim2 = \case
   Builtin.Sub -> "-"
   Builtin.Mul -> "*"
   Builtin.ModInt -> "%"
+  Builtin.EqChar -> "E"
   Builtin.EqInt -> "="
   Builtin.LessInt -> "<"
   Builtin.StringAppend -> "^"
+  Builtin.StrIndex -> "I"
