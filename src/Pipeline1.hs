@@ -38,8 +38,8 @@ compile opt exp =
             pure exp'
       return $ Right (Code exp')
 
-execute :: CommandLineArgs -> Code -> (Value,Instrumentation)
-execute _cla_IGNORED (Code exp) = (Ast.evaluate exp, ())
+execute :: CommandLineArgs -> Code -> IO (Value,Instrumentation)
+execute _cla_IGNORED (Code exp) = return(Ast.evaluate exp, ())
 
 type Instrumentation = ()
 
