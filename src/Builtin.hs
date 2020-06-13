@@ -9,7 +9,7 @@ data BV = Num Int | Str String | Bool Bool | Char Char
 data Prim1 = ShowChar | ShowInt | ReadInt | Argv | StrSize
   deriving (Eq,Ord,Show)
 
-data Prim2 = Add | Sub | Mul | ModInt | EqChar | EqInt | LessInt | StringAppend | StrIndex
+data Prim2 = Add | Sub | Mul | ModInt | EqChar | EqInt | EqString | LessInt | StringAppend | StrIndex
   deriving (Eq,Ord,Show)
 
 instance Show BV where
@@ -27,7 +27,7 @@ data CommandLineArgs = CommandLineArgs { argv :: Int -> String }
 apply1 :: CommandLineArgs -> Prim1 -> BV -> Either BuiltinError BV
 apply1 CommandLineArgs{argv} prim = case prim of
   ShowChar -> \case
-    Num c1 -> Right (Str (show c1))
+    Char c1 -> Right (Str [c1])
     v -> Left $ BuiltinError $ "type error: " <> show (prim,v)
 
   ShowInt -> \case
@@ -71,6 +71,10 @@ apply2 prim = case prim of
 
   EqInt -> \case
     (Num n1, Num n2) -> Right (Bool (n1 == n2))
+    vv -> Left $ BuiltinError $ "type error: " <> show (prim,vv)
+
+  EqString -> \case
+    (Str s1, Str s2) -> Right (Bool (s1 == s2))
     vv -> Left $ BuiltinError $ "type error: " <> show (prim,vv)
 
   LessInt -> \case

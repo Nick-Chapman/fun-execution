@@ -99,6 +99,7 @@ pep Conf{opt,cla} put line defs = do
 
     Right (Just (Left (def@(Def _ exp)))) -> do
       put line
+      --putStrLn $ col AN.Magenta $ "ast: " <> show exp
       let expWithContext = List.foldl (flip wrapDef) exp defs
       case check expWithContext of
         Just err -> do
@@ -109,6 +110,7 @@ pep Conf{opt,cla} put line defs = do
 
     Right (Just (Right exp)) -> do
       put line
+      --putStrLn $ col AN.Magenta $ "ast: " <> show exp
       let expWithContext = List.foldl (flip wrapDef) exp defs
       compile opt expWithContext >>= \case
         Left err -> do

@@ -13,6 +13,7 @@ defs = mkDefs
   , ("%", binop Builtin.ModInt)
   , ("==", binop Builtin.EqInt)
   , ("eqChar", binop Builtin.EqChar)
+  , ("eqString", binop Builtin.EqString)
   , ("<", binop Builtin.LessInt)
   , ("true", ECon $ Builtin.Bool True)
   , ("false", ECon $ Builtin.Bool False)
