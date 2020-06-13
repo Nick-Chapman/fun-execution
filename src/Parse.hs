@@ -78,10 +78,15 @@ lang = do
             b <- right
             return (f a b)
 
-    let infixOps = [ ".", "%", "+", "-", "*", "^", ">", "<", ">=", "<=", "==", "===", "&&", "||", "++", ">>" ]
+    let infixOpsL = [ ".", "%", "+", "-", "*", "^", ">", "<", ">=", "<=", "==", "===", "&&", "||", "++" ]
+
+    let infixOpsR = [ ":", ">>" ]
+
+    let infixOps = infixOpsL ++ infixOpsR
 
     let mkBinOp c = mkBin (\x y -> mkEApp (mkEApp (EVar (Var c)) x) y) c
-    let makeBinop a b = alts (map (\s -> mkBinOp s a b) infixOps)
+    let makeBinopL a b = alts (map (\s -> mkBinOp s a b) infixOpsL)
+    let makeBinopR a b = alts (map (\s -> mkBinOp s a b) infixOpsR)
 
     let infixedOpAsIdent = alts [ do keyword s; return (Var s) | s <- infixOps ]
     let nonInfixedUseOfInfixOp = do symbol '('; ws; x <- infixedOpAsIdent; symbol ')'; return x
@@ -120,15 +125,38 @@ lang = do
             ws; e <- exp
             return $ EIf i t e
 
+    let commaSepExps = alts
+          [ do ws; return []
+          , do ws; (e,es) <- parseListSep exp (do ws; symbol ','; ws); ws; return (e:es)
+          ]
+
+    let listLiteral = do
+          symbol '['
+          es <- commaSepExps
+          symbol ']'
+          return $ eList es
+          where
+            eNil = EVar $ Var "nil"
+            eCons x y = mkEApp (mkEApp (EVar (Var ":")) x) y
+            eList = foldr eCons eNil
+
     let open = alts [num,var] -- requiring whitespace to avoid juxta-collision
-    let closed = alts [parenthesized exp, charLit, stringLit, EVar <$> nonInfixedUseOfInfixOp]
+    let closed = alts [listLiteral, parenthesized exp, charLit, stringLit, EVar <$> nonInfixedUseOfInfixOp]
 
     -- application: juxta position; but whitespace is required for open@open
-    (app',app) <- declare "app"
-    produce app' $ alts [
-        mkApp (alts [open,closed,app])    ws1     (alts [open,closed]),
-        mkApp (alts [open,closed,app])    eps     (alts [     closed]),
-        mkApp (alts [     closed    ])    eps     (alts [open    ])
+    (capp',capp) <- declare "capp"
+    (oapp',oapp) <- declare "oapp"
+
+    let app = alts [oapp,capp]
+
+    produce capp' $ alts [
+        mkApp (alts [open,closed, app])  ws1  closed,
+        mkApp (alts [open,closed, app])  eps  closed
+        ]
+
+    produce oapp' $ alts [
+        mkApp (alts [open,closed, app])  ws1  open,
+        mkApp (alts [     closed,capp])  eps  open
         ]
 
     let app_lam = mkApp (alts [open,closed,app]) ws lam
@@ -140,10 +168,18 @@ lang = do
 
     -- left associative operators
     (opl',opl) <- declare "opl"
-    produce opl' $ makeBinop (alts [open,closed,app,opl]) (alts [open,closed,app])
-    let opl_lam  = makeBinop (alts [open,closed,app,opl]) lam
+    produce opl' $ makeBinopL (alts [open,closed,app,opl]) (alts [open,closed,app])
+    let opl_lam  = makeBinopL (alts [open,closed,app,opl]) lam
 
-    produce exp' $ alts [open,closed,lam,app,opl, app_lam, fix_lam, opl_lam, letSyntax, ifThenElseSyntax]
+    -- right associative operators
+    (opr',opr) <- declare "opr"
+    produce opr' $ makeBinopR (alts [open,closed,app]) (alts [open,closed,app,opr])
+
+    let opr_lam  = makeBinopR (alts [open,closed,app,opl]) lam
+
+    produce exp' $ alts [open,closed,lam,app,opl,opr,
+                         app_lam, fix_lam, opl_lam, opr_lam,
+                         letSyntax, ifThenElseSyntax]
 
     let def = do
             name <- formal
