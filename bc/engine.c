@@ -25,6 +25,7 @@ static value temps2[temps_size];
 
 inline static char* get_code_ref(unsigned n);
 inline static value* heap_alloc(int n);
+inline static void set_code(char* c);
 inline static char next();
 inline static int digit();
 inline static value argument();
@@ -64,14 +65,14 @@ value run_engine(int argc, char* argv[]) {
     switch(instr) {
     case 'u': {
       int dest = digit();
-      code = get_code_ref(dest);
+      set_code(get_code_ref(dest));
       break;
     }
     case 'j': {
       value cond = argument();
       int dest = digit();
       if (cond) {
-        code = get_code_ref(dest);
+        set_code(get_code_ref(dest));
       }
       break;
     }
@@ -121,6 +122,7 @@ value run_engine(int argc, char* argv[]) {
       long a = (long)argument();
       long b = (long)argument();
       long res = a == b;
+      //printf("equal( %ld/'%c', %ld/'%c' ) --> %ld\n",a,(char)a,b,(char)b,res);
       push_stack((value)res);
       break;
     }
@@ -135,6 +137,7 @@ value run_engine(int argc, char* argv[]) {
       long a = (long)argument();
       long b = (long)argument();
       long res = a < b;
+      //printf("less-than( %ld/'%c', %ld/'%c' ) --> %ld\n",a,(char)a,b,(char)b,res);
       push_stack((value)res);
       break;
     }
@@ -142,6 +145,7 @@ value run_engine(int argc, char* argv[]) {
       long a = (long)argument();
       long b = (long)argument();
       long res = a - b;
+      //printf("minus('%ld',%ld) -> %ld\n",a,b,res);
       push_stack((value)res);
       break;
     }
@@ -167,24 +171,28 @@ value run_engine(int argc, char* argv[]) {
       break;
     }
     case 'S': {
+      //printf("string_of_int\n");
       long a = (long)argument();
       char* res = string_of_int(a);
       push_stack((value)res);
       break;
     }
     case 'C': {
+      //printf("string_of_char\n");
       char c = (char)(long)argument();
       char* res = string_of_char(c);
       push_stack((value)res);
       break;
     }
     case 'Z': {
+      //printf("strlen\n");
       char* a = (char*)argument();
       long res = strlen(a);
       push_stack((value)res);
       break;
     }
     case 'R': {
+      //printf("int-of-string\n");
       char* s = (char*)argument();
       long n = 0;
       sscanf(s,"%ld",&n);
@@ -192,12 +200,14 @@ value run_engine(int argc, char* argv[]) {
       break;
     }
     case 'A': {
+      //printf("argv\n");
       long n = (long)argument();
       char* res = n<argc ? argv[n] : "";
       push_stack((value)res);
       break;
     }
     case '^': {
+      //printf("string_concat\n");
       char* s1 = (char*)argument();
       char* s2 = (char*)argument();
       char* res = string_concat(s1,s2);
@@ -208,6 +218,7 @@ value run_engine(int argc, char* argv[]) {
       char* s1 = (char*)argument();
       long n = (long)argument();
       char c = s1[n];
+      //printf("index('%s',%ld) -> %c\n",s1,n,c);
       push_stack((value)(long)c);
       break;
       }
@@ -274,7 +285,7 @@ void init_machine() {
   init_max_overapp_ref();
 #endif
   kont = &final_continuation[0];
-  code = get_code_ref(0); // can fail if there is no code
+  set_code(get_code_ref(0)); // can fail if there is no code
   stack = &temps1[0];
   args = &temps2[0];
   hp = &heap[0];
@@ -293,7 +304,7 @@ void push_continuation(char* code,int nFree) {
 
 void return_to_continuation(value v) {
   int nFree = (long)kont[0];
-  code = kont[1];
+  set_code(kont[1]);
   frame = 0;
   sp = stack;
   for (int i = 0; i < nFree; i++) {
@@ -313,7 +324,7 @@ value* make_closure(int codeRef, int nFree) {
 
 void enter_closure(value* clo) {
   this_closure = clo;
-  code = clo[0];
+  set_code(clo[0]);
   frame = &clo[1];
   value* tmp;
   tmp = stack; stack = args; args = tmp;
@@ -423,6 +434,11 @@ char* string_concat(char* s1, char* s2) {
   char* res = (char*)heap_alloc(n);
   sprintf(res,"%s%s",s1,s2);
   return res;
+}
+
+void set_code(char* c) {
+  //printf("set_code: %s\n",c);
+  code = c;
 }
 
 #ifndef NDEBUG
