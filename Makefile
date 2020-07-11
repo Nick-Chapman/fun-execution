@@ -10,6 +10,8 @@ BC = bc
 
 OUT = _build
 
+DEBUG = # -g
+
 .PRECIOUS: $(OUT)/%
 .SECONDARY:
 
@@ -32,10 +34,10 @@ $(OUT)/%-nn: $(OUT)/main.o $(OUT)/engine.o $(OUT)/%-nn.o
 	gcc $^ -o $@
 
 $(OUT)/%.o: $(OUT)/%.c $(BC)/value.h .dir
-	gcc -I$(BC) -Wall -Werror -c $< -o $@
+	gcc -I$(BC) -Wall -Werror $(DEBUG) -c $< -o $@
 
 $(OUT)/%-nn.o: $(OUT)/%-nn.c $(BC)/value.h .dir
-	gcc -I$(BC) -Wall -Werror -c $< -o $@
+	gcc -I$(BC) -Wall -Werror $(DEBUG) -c $< -o $@
 
 $(OUT)/%.c: fun/%.fun src/*.hs .dir
 	stack run batch $< $@
@@ -44,10 +46,10 @@ $(OUT)/%-nn.c: fun/%.fun src/*.hs .dir
 	stack run batch -- -nn $< $@
 
 $(OUT)/engine.o: $(BC)/engine.c $(BC)/value.h .dir
-	gcc -Wall -Werror -c $< -o $@
+	gcc -Wall -Werror $(DEBUG) -c $< -o $@
 
 $(OUT)/main.o: $(BC)/main.c $(BC)/value.h .dir
-	gcc -Wall -Werror -c $< -o $@
+	gcc -Wall -Werror $(DEBUG) -c $< -o $@
 
 .dir:
 	mkdir -p $(OUT)
