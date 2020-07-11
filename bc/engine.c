@@ -126,13 +126,6 @@ value run_engine(int argc, char* argv[]) {
       push_stack((value)res);
       break;
     }
-    case 'E': {
-      char a = (char)(long)argument();
-      char b = (char)(long)argument();
-      long res = a == b;
-      push_stack((value)res);
-      break;
-    }
     case '<': {
       long a = (long)argument();
       long b = (long)argument();
