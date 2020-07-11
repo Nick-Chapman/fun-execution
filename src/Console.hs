@@ -117,9 +117,12 @@ pep Conf{opt,cla} put line defs = do
           putStrLn $ col AN.Red (show err)
           return Nothing
         Right code -> do
-          (value,instrumentation) <- execute cla code
-          putStrLn $ col AN.Cyan (show value)
-          putStrLn $ col AN.Green (show instrumentation)
+          execute cla code >>= \case
+            Left mes ->
+              putStrLn $ col AN.Red (show mes)
+            Right (value,instrumentation) -> do
+              putStrLn $ col AN.Cyan (show value)
+              putStrLn $ col AN.Green (show instrumentation)
           return Nothing
 
 col :: AN.Color -> String -> String

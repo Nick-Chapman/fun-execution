@@ -1,10 +1,12 @@
 
 module Pipeline3 (CompilationError,Code,Value,Instrumentation,check,compile,execute,quietCompile,Opt(..)) where
 
+import Control.Exception(try)
 import qualified System.Console.ANSI as AN
 
 -- Pipeline: Ast -> Anf -> ClosureConverted
 
+import Builtin (CommandLineArgs)
 import Rep_Ast (Exp)
 import Rep_ClosureConverted (Code)
 import Eval_ClosureConverted (Value,Instrumentation)
@@ -13,7 +15,7 @@ import Trans_Normalize (normalize)
 import Trans_Ast2Anf (flatten)
 import Trans_Anf2CC (convert)
 import Trans_CC2Linear (linearize)
-import Eval_ClosureConverted (execute)
+import qualified Eval_ClosureConverted as Eval (execute)
 import qualified Rep_Linear as Lin
 
 data Opt = NoOpt | NbE
@@ -51,6 +53,10 @@ compile opt exp = do
     put = if optPut then putStr else \_ -> return ()
 
     optPut = False  -- TODO: select via opt
+
+execute :: CommandLineArgs -> Code -> IO (Either String (Value, Instrumentation))
+execute cla x = do
+  either (Left . show) Right <$> (try @IOError $ Eval.execute cla x)
 
 col :: AN.Color -> String -> String
 col c s =

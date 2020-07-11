@@ -6,10 +6,10 @@ module Builtin(BuiltinError,BV(..),Prim1(..),Prim2(..),apply1,apply2,CommandLine
 data BV = Num Int | Str String | Bool Bool | Char Char
   deriving (Eq)
 
-data Prim1 = ShowChar | ShowInt | ReadInt | Argv | StrSize
+data Prim1 = ShowChar | ShowInt | ReadInt | Argv | StrSize | Error
   deriving (Eq,Ord,Show)
 
-data Prim2 = Add | Sub | Mul | ModInt | EqChar | EqInt | EqString | LessInt | StringAppend | StrIndex
+data Prim2 = Add | Sub | Mul | ModInt | EqNumOrChar | LessNumOrChar | EqString | StringAppend | StrIndex
   deriving (Eq,Ord,Show)
 
 instance Show BV where
@@ -46,6 +46,10 @@ apply1 CommandLineArgs{argv} prim = case prim of
     Str s -> Right (Num (length s))
     v -> Left $ BuiltinError $ "type error: " <> show (prim,v)
 
+  Error -> \case
+    Str s -> Left $ BuiltinError $ "error: " ++ s
+    v -> Left $ BuiltinError $ "type error: " <> show (prim,v)
+
 apply2 :: Prim2 -> (BV,BV) -> Either BuiltinError BV
 apply2 prim = case prim of
 
@@ -55,6 +59,7 @@ apply2 prim = case prim of
 
   Sub -> \case
     (Num n1, Num n2) -> Right (Num (n1-n2))
+    (Char c1, Char c2) -> Right (Num (fromEnum c1 - fromEnum c2))
     vv -> Left $ BuiltinError $ "type error: " <> show (prim,vv)
 
   Mul -> \case
@@ -65,20 +70,18 @@ apply2 prim = case prim of
     (Num n1, Num n2) -> Right (Num (n1 `mod` n2))
     vv -> Left $ BuiltinError $ "type error: " <> show (prim,vv)
 
-  EqChar -> \case
-    (Char x1, Char x2) -> Right (Bool (x1 == x2))
-    vv -> Left $ BuiltinError $ "type error: " <> show (prim,vv)
-
-  EqInt -> \case
+  EqNumOrChar -> \case
     (Num n1, Num n2) -> Right (Bool (n1 == n2))
+    (Char x1, Char x2) -> Right (Bool (x1 == x2))
     vv -> Left $ BuiltinError $ "type error: " <> show (prim,vv)
 
   EqString -> \case
     (Str s1, Str s2) -> Right (Bool (s1 == s2))
     vv -> Left $ BuiltinError $ "type error: " <> show (prim,vv)
 
-  LessInt -> \case
-    (Num n1, Num n2) -> Right (Bool (n1 < n2))
+  LessNumOrChar -> \case
+    (Num x1, Num x2) -> Right (Bool (x1 < x2))
+    (Char x1, Char x2) -> Right (Bool (x1 < x2))
     vv -> Left $ BuiltinError $ "type error: " <> show (prim,vv)
 
   StringAppend -> \case

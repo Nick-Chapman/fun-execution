@@ -21,10 +21,12 @@ parse s =
       Right exp -> return exp
 
 keywords :: [String] -- which are not allowed as identifiers
-keywords = ["let","in","if","then","else","fix"]
+keywords = ["do", "let","in","if","then","else","fix"]
 
 lang :: Lang Char (Gram (Maybe (Either Def Exp)))
 lang = do
+
+    let mkBinApp b x y = mkEApp (mkEApp (EVar (Var b)) x) y
 
     token <- getToken
 
@@ -61,8 +63,10 @@ lang = do
     let charLit = do q; x <- token; q; return $ ECon $ Builtin.Char x
 
     let dq = symbol '"'
+    let backslash = symbol '\\'
     let notdq = sat (/= '"')
-    let stringLit = do dq; cs <- many notdq; dq; return $ ECon $ Builtin.Str cs
+    let stringLitElem = alts [notdq, do backslash; dq; return '"']
+    let stringLit = do dq; cs <- many stringLitElem; dq; return $ ECon $ Builtin.Str cs
 
     let parenthesized p = do symbol '('; ws; x <- p; ws; symbol ')'; return x
 
@@ -78,13 +82,14 @@ lang = do
             b <- right
             return (f a b)
 
-    let infixOpsL = [ ".", "%", "+", "-", "*", "^", ">", "<", ">=", "<=", "==", "===", "&&", "||", "++" ]
+    let infixOpsL = [ ".", "%", "+", "-", "*", "^", ">", "<", ">=", "<=", "==", "==="
+                    , "&&", "||", "++", ">>", ">>=", "$", "<$>" ]
 
-    let infixOpsR = [ ":", ">>" ]
+    let infixOpsR = [ ":" ]
 
     let infixOps = infixOpsL ++ infixOpsR
 
-    let mkBinOp c = mkBin (\x y -> mkEApp (mkEApp (EVar (Var c)) x) y) c
+    let mkBinOp c = mkBin (mkBinApp c) c
     let makeBinopL a b = alts (map (\s -> mkBinOp s a b) infixOpsL)
     let makeBinopR a b = alts (map (\s -> mkBinOp s a b) infixOpsR)
 
@@ -140,6 +145,20 @@ lang = do
             eCons x y = mkEApp (mkEApp (EVar (Var ":")) x) y
             eList = foldr eCons eNil
 
+    let doBinding = do
+          x <- alts [ return (Var "_")
+                    , do x <- formal; ws; keyword "<-"; ws; return x
+                    ]
+          e1 <- exp
+          ws; symbol ';'
+          ws; e2 <- alts [doBinding,exp]
+          return$ mkBinApp ">>=" e1 (mkELam x e2)
+
+    let doSyntax = do
+          keyword "do"
+          ws; alts [doBinding,exp]
+
+
     let open = alts [num,var] -- requiring whitespace to avoid juxta-collision
     let closed = alts [listLiteral, parenthesized exp, charLit, stringLit, EVar <$> nonInfixedUseOfInfixOp]
 
@@ -179,7 +198,7 @@ lang = do
 
     produce exp' $ alts [open,closed,lam,app,opl,opr,
                          app_lam, fix_lam, opl_lam, opr_lam,
-                         letSyntax, ifThenElseSyntax]
+                         letSyntax, ifThenElseSyntax, doSyntax]
 
     let def = do
             name <- formal

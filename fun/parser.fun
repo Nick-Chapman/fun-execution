@@ -25,7 +25,7 @@ finalSucc = \i a. i (\u. a) (\x xs. error ("unconsumed input: " ^ showInput i))
 finalErr  = \i  . error ("parse error at: " ^ showInput i)
 run p i = p i (finalSucc i) finalSucc (\u. finalErr i) finalErr
 
-tok c = satisfy (eqChar c)
+tok c = satisfy ((==) c)
 lit c n = tok c >>\_. ret n
 
 p_lp = tok '('

@@ -33,6 +33,7 @@ default-extensions:
 - NumericUnderscores
 - RankNTypes
 - ScopedTypeVariables
+- TypeApplications
 
 ghc-options:
 - -Werror

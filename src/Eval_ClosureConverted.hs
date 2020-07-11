@@ -45,15 +45,13 @@ run Machine{cla,i,c=code0,f,k} = do
       saves = map (\_ -> DoSaveFree) freeFollow
       k' = Kbind {fvs = map (locate f) freeFollow, code = follow, kont=k}
 
-  LetPrim1 prim a1 code ->
-    run $ Machine cla (tick [DoPrim1 prim] i) code f' k
-    where
-      f' = push (doPrim1 cla prim (atomic f a1)) f
+  LetPrim1 prim a1 code -> do
+    v <- doPrim1 cla prim (atomic f a1)
+    run $ Machine cla (tick [DoPrim1 prim] i) code (push v f) k
 
-  LetPrim2 prim (a1,a2) code ->
-    run $ Machine cla (tick [DoPrim2 prim] i) code f' k
-    where
-      f' = push (doPrim2 prim (atomic f a1) (atomic f a2)) f
+  LetPrim2 prim (a1,a2) code -> do
+    v <- doPrim2 prim (atomic f a1) (atomic f a2)
+    run $ Machine cla (tick [DoPrim2 prim] i) code (push v f) k
 
   LetClose {freeBody,arity,body,code} ->
     run $ Machine cla (tick (saves++[DoMakeClosure]) i) code f' k
@@ -62,8 +60,9 @@ run Machine{cla,i,c=code0,f,k} = do
       f' = push clo f
       clo = Clo {fvs = map (locate f') freeBody, arity, body}
 
-  Branch a1 c2 c3 ->
-    run $ Machine cla (tick [DoBranch] i) (branch c2 c3 (atomic f a1)) f k
+  Branch a1 c2 c3 -> do
+    c <- branch c2 c3 (atomic f a1)
+    run $ Machine cla (tick [DoBranch] i) c f k
 
 ret :: CommandLineArgs -> Counts -> Value -> Kont -> IO Result
 ret cla i v = \case
@@ -75,7 +74,7 @@ enter cla i func args k = do
  --print "enter"
  --print (func,args)
  case func of
-  Base bv -> error $ "cant enter a non-closure: " ++ show bv
+  Base bv -> fail $ "cant enter a non-closure: " ++ show bv
   clo@Clo{fvs,arity,body}
     | arity == got -> do
         run $ Machine cla (tick [DoEnter] i) body Frame {fvs,args} k
@@ -89,11 +88,11 @@ enter cla i func args k = do
       nMissing = arity - got
       got = length args
 
-branch :: Code -> Code -> Value -> Code
+branch :: Code -> Code -> Value -> IO Code
 branch c2 c3 = \case
-  Base (Builtin.Bool True) -> c2
-  Base (Builtin.Bool False) -> c3
-  _ -> error "cant branch on a non boolean"
+  Base (Builtin.Bool True) -> return c2
+  Base (Builtin.Bool False) -> return c3
+  _ -> fail "cant branch on a non boolean"
 
 atomic :: Frame -> Atom -> Value
 atomic f = \case
@@ -108,22 +107,22 @@ locate Frame{fvs,args} = \case
 push :: Value -> Frame -> Frame
 push v f@Frame{args} = f { args = args ++ [v] }
 
-doPrim1 :: CommandLineArgs -> Builtin.Prim1 -> Value -> Value
+doPrim1 :: CommandLineArgs -> Builtin.Prim1 -> Value -> IO Value
 doPrim1 cla prim = \case
-  Clo{} -> error $ "cant apply primitive to arg1-closure: " <> show prim
-  Base bv1 -> Base (returnOrError $ Builtin.apply1 cla prim bv1)
+  Clo{} -> fail $ "cant apply primitive to arg1-closure: " <> show prim
+  Base bv1 -> Base <$> (returnOrFail $ Builtin.apply1 cla prim bv1)
 
-doPrim2 :: Builtin.Prim2 -> Value -> Value -> Value
+doPrim2 :: Builtin.Prim2 -> Value -> Value -> IO Value
 doPrim2 prim = \case
-  Clo{} -> \_ -> error $ "cant apply primitive to arg1-closure: " <> show prim
+  Clo{} -> \_ -> fail $ "cant apply primitive to arg1-closure: " <> show prim
   Base bv1 -> \case
-    Clo{} -> error $ "cant apply primitive to arg2-closure: " <> show (prim,bv1)
-    Base bv2 -> Base (returnOrError $ Builtin.apply2 prim (bv1,bv2))
+    Clo{} -> fail $ "cant apply primitive to arg2-closure: " <> show (prim,bv1)
+    Base bv2 -> Base <$> (returnOrFail $ Builtin.apply2 prim (bv1,bv2))
 
-returnOrError :: Show e => Either e a -> a
-returnOrError = \case
-  Left e -> error $ show e
-  Right a -> a
+returnOrFail :: Show e => Either e a -> IO a
+returnOrFail = \case
+  Left e -> fail $ show e
+  Right a -> return a
 
 makeOverAppK :: [Value] -> Kont -> Kont
 makeOverAppK overArgs kont = Kbind {fvs=overArgs, code, kont}

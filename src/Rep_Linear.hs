@@ -89,6 +89,7 @@ showPrim1 = \case
   Builtin.ReadInt -> "R"
   Builtin.Argv -> "A"
   Builtin.StrSize -> "Z"
+  Builtin.Error -> "!"
 
 showPrim2 :: Builtin.Prim2 -> String
 showPrim2 = \case
@@ -96,9 +97,8 @@ showPrim2 = \case
   Builtin.Sub -> "-"
   Builtin.Mul -> "*"
   Builtin.ModInt -> "%"
-  Builtin.EqChar -> "E"
-  Builtin.EqInt -> "="
+  Builtin.EqNumOrChar -> "="
   Builtin.EqString -> "~"
-  Builtin.LessInt -> "<"
+  Builtin.LessNumOrChar -> "<"
   Builtin.StringAppend -> "^"
   Builtin.StrIndex -> "I"

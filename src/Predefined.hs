@@ -11,10 +11,9 @@ defs = mkDefs
   , ("-", binop Builtin.Sub)
   , ("*", binop Builtin.Mul)
   , ("%", binop Builtin.ModInt)
-  , ("==", binop Builtin.EqInt)
-  , ("eqChar", binop Builtin.EqChar)
+  , ("==", binop Builtin.EqNumOrChar)
+  , ("<", binop Builtin.LessNumOrChar)
   , ("eqString", binop Builtin.EqString)
-  , ("<", binop Builtin.LessInt)
   , ("true", ECon $ Builtin.Bool True)
   , ("false", ECon $ Builtin.Bool False)
   , ("^", binop Builtin.StringAppend)
@@ -24,6 +23,7 @@ defs = mkDefs
   , ("argv", unop Builtin.Argv)
   , ("size", unop Builtin.StrSize)
   , ("index", binop Builtin.StrIndex)
+  , ("error", unop Builtin.Error)
   ]
 
 
