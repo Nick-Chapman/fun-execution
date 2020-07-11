@@ -207,6 +207,15 @@ value run_engine(int argc, char* argv[]) {
       push_stack((value)res);
       break;
       }
+    case '~': {
+      //printf("strcmp\n");
+      char* s1 = (char*)argument();
+      char* s2 = (char*)argument();
+      long res = strcmp(s1,s2);
+      //printf("~: '%s' ~ '%s' -> '%ld'\n",s1,s2,res);
+      push_stack((value)(res?0L:1L));
+      break;
+      }
     case 'I': {
       char* s1 = (char*)argument();
       long n = (long)argument();
@@ -215,6 +224,12 @@ value run_engine(int argc, char* argv[]) {
       push_stack((value)(long)c);
       break;
       }
+    case '!': {
+      char* a = (char*)argument();
+      printf("error: %s\n",a);
+      exit(1);
+      break;
+    }
     default:
       printf("unknown byte: '%c'\n",instr);
       exit(1);
