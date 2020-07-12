@@ -45,8 +45,6 @@ compile opt exp = do
       put $ col AN.Blue (show anf)
       let cc = convert anf
       put $ col AN.Magenta (show cc)
-      let lin = linearize cc
-      put $ col AN.White (show lin)
       return $ Right cc
   where
     put :: String -> IO ()
@@ -64,10 +62,10 @@ col c s =
   AN.setSGRCode [AN.SetColor AN.Foreground AN.Vivid AN.White]
 
 
-quietCompile :: Opt -> Exp -> Lin.Code
+quietCompile :: Opt -> Exp -> IO Lin.Code
 quietCompile opt exp = do
   let exp' = case opt of NoOpt -> exp; NbE -> normalize exp
   let anf = flatten exp'
   let cc = convert anf
   let lin = linearize cc
-  lin
+  return lin

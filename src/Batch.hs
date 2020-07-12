@@ -6,7 +6,7 @@ import qualified Data.List as List
 import qualified System.Console.ANSI as AN
 
 import Parse (parse)
-import Pipeline3 (check,quietCompile,Opt(..))
+import Pipeline (check,quietCompile,Opt(..))
 import Rep_Ast (Def(..),wrapDef)
 import qualified Predefined (defs)
 import qualified Rep_Linear as Lin
@@ -37,8 +37,7 @@ compileProgLines opt xs = loop Predefined.defs xs
           Def name exp : _ -> do
             putStrLn $ "compiling definition: " ++ show name
             let expWithContext = List.foldl (flip wrapDef) exp defs
-            let lin = quietCompile opt expWithContext
-            return lin
+            quietCompile opt expWithContext
 
 compileLine :: [Def] -> String -> IO [Def]
 compileLine defs line = do
