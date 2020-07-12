@@ -8,7 +8,11 @@ import Builtin (CommandLineArgs,BV(..),Prim1,Prim2,apply1,apply2)
 data Value
   = Base Builtin.BV
   | Clo { fvs :: [Value], body :: CodeSequence }
-  deriving Show
+
+instance Show Value where
+  show = \case
+    Base bv -> show bv
+    Clo{} -> "<closure>"
 
 type Result = (Value,Instrumentation)
 data Instrumentation = NoInstrumentation deriving Show
