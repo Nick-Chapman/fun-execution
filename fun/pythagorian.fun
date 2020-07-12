@@ -30,3 +30,4 @@ unwords = foldl (^) ""
 prog = unwords . map showTrip . filter isPythagorian . cands
 
 main = prog 20
+main

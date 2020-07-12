@@ -52,3 +52,5 @@ exp = fixP \exp. atom exp >>\x1. alt (ret x1) (binop>>\f. exp>>\x2. ret (f x1 x2
 
 parse s = run exp (explode s)
 main = parse (argv 1)
+
+parse "12+(3*5)+(2*33)"

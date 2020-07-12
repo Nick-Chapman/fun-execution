@@ -9,3 +9,5 @@ func a = let b = a+a in \c. b*c
 prog n = keep func n n
 
 main = prog 10
+
+main

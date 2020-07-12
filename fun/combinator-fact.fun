@@ -13,3 +13,4 @@ mul = fix \mul a b. a zero \a'. add b (mul a' b)
 fact = fix \fact n. n one \p. mul n (fact p)
 
 main = show (fact (fact three))
+main
