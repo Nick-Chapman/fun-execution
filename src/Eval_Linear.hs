@@ -27,7 +27,7 @@ data Machine  = Machine
 data Kont = Kdone | Kbind { fvs :: [Value], code :: CodeSequence, next :: Kont }
 
 execute :: CommandLineArgs -> Code -> IO Result
-execute cla Code{lits,defs} = do v <- run machine0 seq0; return (v,NoInstrumentation)
+execute cla Code{lits,defs} = do v <- run0 machine0 seq0; return (v,NoInstrumentation)
   where
     machine0 = Machine { stack = [], fvs = [], kont = Kdone, this_closure = Nothing }
     seq0 = getSeq (CodeRef (Index 0))
@@ -37,7 +37,7 @@ execute cla Code{lits,defs} = do v <- run machine0 seq0; return (v,NoInstrumenta
 
     run0 :: Machine -> CodeSequence -> IO Value
     run0 m seq = do
-      --print ("run0",seq);
+      --putStrLn $ "set_code: " <> show seq
       run m seq
 
     run :: Machine -> CodeSequence -> IO Value
@@ -108,7 +108,7 @@ makePap :: Int -> Value -> [Value] -> Value
 makePap nMissing clo argsSoFar = clo2
   where
     clo2 = Clo {fvs = clo : argsSoFar, body}
-    body = Tail (VFree (Index 0)) args
+    body = ArityCheck (Index nMissing) $ Tail (VFree (Index 0)) args
     args =
       [ VFree (Index i) | i <- [1 .. length argsSoFar] ] ++
       [ VArg (Index i) | i <- [0 .. nMissing - 1] ]
