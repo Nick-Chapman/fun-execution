@@ -5,6 +5,8 @@
 
 #include "value.h"
 
+//#define TRACE
+
 //#define FVS_ON_STACK // must be consistent with compiler (../src/Config.hs)
 
 typedef int bool_t;
@@ -156,7 +158,7 @@ value run_engine(int argc, char* argv[]) {
       push_stack((value)res);
       break;
     }
-    case '*': {
+    case 'M': {
       long a = (long)argument();
       long b = (long)argument();
       long res = a * b;
@@ -466,7 +468,9 @@ char* string_concat(char* s1, char* s2) {
 }
 
 void set_code(char* c) {
-  //printf("set_code: %s\n",c);
+#ifdef TRACE
+  printf("set_code: %s\n",c);
+#endif
   code = c;
 }
 
@@ -499,13 +503,18 @@ int digit() {
 value argument() {
   char c;
   switch (c = next()) {
-  case '0'...'9': {
+  /*case '0'...'9': {
     int n = c - '0';
     value res = stack[n];
     return res;
   }
   case 'x': {
     return stack[10 * digit() + digit()];
+  }*/
+  case '*': {
+    int n = digit();
+    value res = stack[n];
+    return res;
   }
   case '$': {
     int n = digit();
@@ -525,45 +534,45 @@ value argument() {
 
 static char* pap_code[] =
   {
-   "n1t~02~10", //pap1/2
-   "n2t~03~101", //pap1/3
-   "n1t~03~1~20", //pap2/3
-   "n3t~04~1012", //pap1/4
-   "n2t~04~1~201", //pap2/4
-   "n1t~04~1~2~30", //pap3/4
-   "n4t~05~10123", //pap1/5
-   "n3t~05~1~2012", //pap2/5
-   "n2t~05~1~2~301", //pap3/5
-   "n1t~05~1~2~3~40", //pap4/5
-   "n5t~06~101234", //pap1/6
+   "n1t~02~1*0", //pap1/2
+   "n2t~03~1*0*1", //pap1/3
+   "n1t~03~1~2*0", //pap2/3
+   "n3t~04~1*0*1*2", //pap1/4
+   "n2t~04~1~2*0*1", //pap2/4
+   "n1t~04~1~2~3*0", //pap3/4
+   "n4t~05~1*0*1*2*3", //pap1/5
+   "n3t~05~1~2*0*1*2", //pap2/5
+   "n2t~05~1~2~3*0*1", //pap3/5
+   "n1t~05~1~2~3~4*0", //pap4/5
+   "n5t~06~1*0*1*2*3*4", //pap1/6
    "?",
    "?",
    "?",
    "?",
    "?",
-   "n5t~07~1~201234", //pap2/7
+   "n5t~07~1~2*0*1*2*3*4", //pap2/7
    "?",
    "?",
    "?",
    "?",
-   "n7t~08~10123456", //pap1/8
+   "n7t~08~1*0*1*2*3*4*5*6", //pap1/8
    0,
   };
 
 static char* overapp_code[] =
   {
 #ifdef FVS_ON_STACK
-   "t110",
-   "t2201",
-   "t33012",
-   "t440123",
-   "t5501234",
+   "t*11*0",
+   "t*22*0*1",
+   "t*33*0*1*2",
+   "t*44*0*1*2*3",
+   "t*55*0*1*2*3*4",
 #else
-   "t01~0",
-   "t02~0~1",
-   "t03~0~1~2",
-   "t04~0~1~2~4",
-   "t05~0~1~2~3~4",
+   "t*01~0",
+   "t*02~0~1",
+   "t*03~0~1~2",
+   "t*04~0~1~2~4",
+   "t*05~0~1~2~3~4",
 #endif
    0,
   };

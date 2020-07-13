@@ -21,6 +21,9 @@ regression.diffs: test/liberal-diff.sh test/test.expected $(OUT)/test.out
 regression-nn.diffs: test/liberal-diff.sh test/test-nn.expected $(OUT)/test-nn.out
 	$^
 
+run-%: $(OUT)/%
+	$^
+
 $(OUT)/test.out: test/test.sh $(EXES)
 	test/test.sh > $@
 

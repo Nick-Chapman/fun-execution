@@ -45,7 +45,7 @@ instance Show Code where
 
 instance Show ValRef where
   show = \case
-    VArg n -> show n
+    VArg n -> "*" ++ show n
     VFree n -> "~" ++ show n
     VLit n -> "$" ++ show n
 
@@ -95,7 +95,7 @@ showPrim2 :: Builtin.Prim2 -> String
 showPrim2 = \case
   Builtin.Add -> "+"
   Builtin.Sub -> "-"
-  Builtin.Mul -> "*"
+  Builtin.Mul -> "M"
   Builtin.ModInt -> "%"
   Builtin.EqNumOrChar -> "="
   Builtin.EqString -> "~"
