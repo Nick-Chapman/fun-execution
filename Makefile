@@ -3,9 +3,8 @@ top: regression.diffs regression-nn.diffs
 
 all: $(EXES)
 
-EXAMPLES = combinator-fact fact list-processing nfib nthPrime over pap-over-app pythagorian thrice-thrice triangle parser do-example
-# currently json-parser fails with "<<loop>>" during Haskell compilation in "-nn" mode. TODO: investigate
-EXES = $(patsubst %, $(OUT)/%, $(EXAMPLES) json-parser)
+EXAMPLES = combinator-fact fact list-processing nfib nthPrime over pap-over-app pythagorian thrice-thrice triangle parser do-example json-parser
+EXES = $(patsubst %, $(OUT)/%, $(EXAMPLES))
 EXES_NN = $(patsubst %, $(OUT)/%-nn, $(EXAMPLES))
 BC = bc
 
