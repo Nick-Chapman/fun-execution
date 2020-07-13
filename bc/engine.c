@@ -9,7 +9,6 @@
 
 typedef int bool_t;
 
-#define BaseContinuationSize 3
 
 #define heap_size 100000000
 #define temps_size 100
@@ -17,7 +16,13 @@ typedef int bool_t;
 static char* pap_code[];
 static char* overapp_code[];
 
+#ifdef FVS_ON_STACK
+#define BaseContinuationSize 3
 static value final_continuation[] = { (value)0, (value)"", (value)0 };
+#else
+#define BaseContinuationSize 2
+static value final_continuation[] = { (value)"", (value)0 };
+#endif
 
 static value heap[heap_size];
 static value temps1[temps_size];
@@ -306,10 +311,16 @@ void init_machine() {
 
 void push_continuation(char* code,int nFree) {
   value* k = heap_alloc(nFree + BaseContinuationSize);
+#ifdef FVS_ON_STACK
   k[0] = (value)(long)nFree;
   k[1] = code;
   k[2] = kont;
   kont = k;
+#else
+  k[0] = code;
+  k[1] = kont;
+  kont = k;
+#endif
 }
 
 void return_to_continuation(value v) {
@@ -325,11 +336,11 @@ void return_to_continuation(value v) {
   push_stack(v);
   kont = kont[2];
 #else
-  set_code(kont[1]);
+  set_code(kont[0]);
   frame = &kont[BaseContinuationSize];
   sp = stack;
   push_stack(v);
-  kont = kont[2];
+  kont = kont[1];
 #endif
 }
 

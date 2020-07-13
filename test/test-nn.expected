@@ -3,77 +3,77 @@ Running tests with flags: -nn
 fact 6
 --------------------------------------------------
 the final result is: 720
-heap used, 134 cells
+heap used, 113 cells
 #steps = 576
 --------------------------------------------------
 triangle 100
 --------------------------------------------------
 the final result is: 5050
-heap used, 1935 cells
+heap used, 1631 cells
 #steps = 8328
 --------------------------------------------------
 nfib 10
 --------------------------------------------------
 the final result is: 177
-heap used, 3810 cells
+heap used, 3191 cells
 #steps = 15856
 --------------------------------------------------
 nthPrime 10
 --------------------------------------------------
 the final result is: 29
-heap used, 7141 cells
+heap used, 6233 cells
 #steps = 40031
 --------------------------------------------------
 thrice-thrice
 --------------------------------------------------
 the final result is: 73
-heap used, 128 cells
+heap used, 99 cells
 #steps = 931
 --------------------------------------------------
 combinator-fact
 --------------------------------------------------
 the final result is: 720
-heap used, 15276 cells
+heap used, 13633 cells
 #steps = 89907
 --------------------------------------------------
 list-processing
 --------------------------------------------------
 the final result is: 338450
-heap used, 5614 cells
+heap used, 4904 cells
 #steps = 28369
 --------------------------------------------------
 over
 --------------------------------------------------
 the final result is: 200
-heap used, 25 cells
+heap used, 22 cells
 #steps = 97
 --------------------------------------------------
 pap-over-app
 --------------------------------------------------
 the final result is: 100
-heap used, 459 cells
+heap used, 401 cells
 #steps = 1594
 --------------------------------------------------
 pythagorian
 --------------------------------------------------
 the final result is: '(3,4,5)(5,12,13)(6,8,10)(8,15,17)(9,12,15)(12,16,20)'
-heap used, 228470 cells
+heap used, 205216 cells
 #steps = 1068975
 --------------------------------------------------
 parser 12+(3*5)+(2*33)
 --------------------------------------------------
 the final result is: 93
-heap used, 5906 cells
+heap used, 5615 cells
 #steps = 26186
 --------------------------------------------------
 do-example
 --------------------------------------------------
 the final result is: '[146,147,148,156,157,158,246,247,248,256,257,258,346,347,348,356,357,358]'
-heap used, 3369 cells
+heap used, 3085 cells
 #steps = 13467
 --------------------------------------------------
 json-parser 11
 --------------------------------------------------
 the final result is: 8306
-heap used, 7541425 cells
+heap used, 7173753 cells
 #steps = 22930798
