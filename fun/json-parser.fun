@@ -158,3 +158,5 @@ parse = parseWith json
 pipeline n = let ast0 = jnfib n in let res0 = eval ast0 in let str = pretty ast0 in let len = size str in let ast1 = parse str in let res1 = eval ast1 in if not (res1 == res0) then error "res1 <> res0" else len
 
 main = pipeline (readInt (argv 1))
+
+pipeline 3
