@@ -155,17 +155,6 @@ json = do ws; fixP (\element -> recursiveStructure element)
 
 parse = parseWith json
 
+pipeline n = let ast0 = jnfib n in let res0 = eval ast0 in let str = pretty ast0 in let len = size str in let ast1 = parse str in let res1 = eval ast1 in if not (res1 == res0) then error "res1 <> res0" else len
 
-pipeline n = let ast0 = jnfib n in let res0 = eval ast0 in let str = pretty ast0 in let ast1 = parse str in let res1 = eval ast1 in if not (res1 == res0) then error "res1 <> res0" else str
-
---pipeline n = pretty (parse (pretty (jnfib n)))
---pipeline n = eval (jnfib n)
---main = pipeline (readInt (argv 1))
---main = pipeline 10
-
-single x = [x]
---ddd = do x <- digit; y <- digit; return [x,y]
-ddd = many digit
-main = makeInt (parseWith ddd "34")
-main
-
+main = pipeline (readInt (argv 1))

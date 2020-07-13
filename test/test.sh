@@ -27,4 +27,4 @@ run pap-over-app
 run pythagorian
 run parser '12+(3*5)+(2*33)'
 run do-example
-run json-parser
+if [ "$flag" != "-nn" ]; then run json-parser '11'; fi
