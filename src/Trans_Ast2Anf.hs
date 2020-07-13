@@ -50,7 +50,7 @@ codifyAs mx = \case
     c3 <- Reset (codifyAs elseName e3)
     return $ Branch a1 c2 c3
   EFix f body0 -> do
-    let (xs,body) = case body0 of ELam xs body -> (xs,body); _ -> ([],body)
+    let (xs,body) = case body0 of ELam xs body -> (xs,body); _ -> ([],body0)
     let mod = Map.union (Map.fromList [ (x,AVar x) | x <- f:xs ])
     body <- ModEnv mod $ Reset (codify body)
     Wrap (LetFix f (xs,body)) (return $ Return $ AVar f)
