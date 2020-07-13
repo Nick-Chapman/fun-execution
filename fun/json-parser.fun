@@ -97,7 +97,7 @@ mapP par f = do x <- par; return (f x)
 (<$>) f par = mapP par f
 
 
--- TODO: JSON parser
+-- JSON parser
 
 ret = return
 alts = foldl alt fail
