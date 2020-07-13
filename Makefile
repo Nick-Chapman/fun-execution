@@ -10,6 +10,8 @@ BC = bc
 
 OUT = _build
 
+#FUN_COMPILE_FLAGS = -fos
+
 DEBUG = -g
 
 .PRECIOUS: $(OUT)/%
@@ -42,11 +44,11 @@ $(OUT)/%.o: $(OUT)/%.c $(BC)/value.h .dir
 $(OUT)/%-nn.o: $(OUT)/%-nn.c $(BC)/value.h .dir
 	gcc -I$(BC) -Wall -Werror $(DEBUG) -c $< -o $@
 
-$(OUT)/%.c: fun/%.fun src/*.hs .dir
-	stack run batch $< $@
+$(OUT)/%.c: fun/%.fun src/*.hs .dir Makefile
+	stack run batch -- $(FUN_COMPILE_FLAGS) $< $@
 
-$(OUT)/%-nn.c: fun/%.fun src/*.hs .dir
-	stack run batch -- -nn $< $@
+$(OUT)/%-nn.c: fun/%.fun src/*.hs .dir Makefile
+	stack run batch -- -nn $(FUN_COMPILE_FLAGS) $< $@
 
 $(OUT)/engine.o: $(BC)/engine.c $(BC)/value.h .dir
 	gcc -Wall -Werror $(DEBUG) -c $< -o $@

@@ -5,7 +5,7 @@ import Control.Monad (when)
 import Data.Maybe (fromJust)
 import Rep_Linear (Code(..),CodeSequence(..),CodeRef(..),LitRef(..),Index(..),ValRef(..))
 import Builtin (CommandLineArgs,BV(..),Prim1,Prim2,apply1,apply2)
-import qualified Config
+import RuntimeCallingConventions (RT(..),ContFreeVars(..))
 
 trace :: Bool
 trace = False
@@ -32,7 +32,7 @@ data Machine  = Machine
 data Kont = Kdone | Kbind { fvs :: [Value], code :: CodeSequence, next :: Kont }
 
 execute :: CommandLineArgs -> Code -> IO Result
-execute cla Code{lits,defs} = do v <- run0 machine0 seq0; return (v,NoInstrumentation)
+execute cla Code{lits,defs,rt} = do v <- run0 machine0 seq0; return (v,NoInstrumentation)
   where
     machine0 = Machine { stack = [], fvs = [], kont = Kdone, this_closure = Nothing }
     seq0 = getSeq (CodeRef (Index 0))
@@ -55,7 +55,7 @@ execute cla Code{lits,defs} = do v <- run0 machine0 seq0; return (v,NoInstrument
         | got < arity -> returnToContinuation (makePap nMissing clo stack)
         | otherwise -> do
             let (myArgs,overArgs) = splitAt arity stack
-            run m { stack = myArgs, kont = makeOverAppK overArgs kont } c
+            run m { stack = myArgs, kont = makeOverAppK rt overArgs kont } c
        where
          nMissing = arity - got
          got = length stack
@@ -90,11 +90,11 @@ execute cla Code{lits,defs} = do v <- run0 machine0 seq0; return (v,NoInstrument
        returnToContinuation v = case kont of
          Kdone -> return v
          Kbind{fvs,code,next} ->
-           case Config.fvsOnStack of
-             True ->
+           case contFreeVars rt of
+             FOS ->
                -- Dump free vars onto stack
                run0 m {stack = fvs ++ [v], fvs = [], kont = next} code
-             False ->
+             FIF ->
                -- Leave free vars in frame
                run0 m {stack = [v], fvs, kont = next} code
 
@@ -123,15 +123,15 @@ makePap nMissing clo argsSoFar = clo2
       [ VFree (Index i) | i <- [1 .. length argsSoFar] ] ++
       [ VArg (Index i) | i <- [0 .. nMissing - 1] ]
 
-makeOverAppK :: [Value] -> Kont -> Kont
-makeOverAppK overArgs kont = Kbind {fvs=overArgs, code, next = kont}
+makeOverAppK :: RT -> [Value] -> Kont -> Kont
+makeOverAppK rt overArgs kont = Kbind {fvs=overArgs, code, next = kont}
   where
     n = length overArgs
-    code = case Config.fvsOnStack of
-      True ->
+    code = case contFreeVars rt of
+      FOS ->
         -- When a continuation is entered, free vars are pushed to the stack:
         Tail (VArg (Index n)) [ VArg (Index i) | i <- [0 .. n-1] ]
-      False ->
+      FIF ->
         -- When a continuation is entered, free vars are found in the frame.
         Tail (VArg (Index 0)) [ VFree (Index i) | i <- [0 .. n-1] ]
 

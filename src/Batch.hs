@@ -6,26 +6,32 @@ import qualified Data.List as List
 import qualified System.Console.ANSI as AN
 
 import Parse (parse)
-import Pipeline (check,quietCompile,Opt(..))
+import Pipeline4 (check,quietCompile,Opt(..)) -- batch fixed to pipeline 4
 import Rep_Ast (Def(..),wrapDef)
+import RuntimeCallingConventions (RT(..),ContFreeVars(..))
 import qualified Predefined (defs)
 import qualified Rep_Linear as Lin
 
 main :: IO ()
 main = do
+  let rtFos = RT { contFreeVars = FOS }
+  let rtFif = RT { contFreeVars = FIF }
   getArgs >>= \case
-    ["-nn",infile,outfile] -> batch NoOpt infile outfile
-    [infile,outfile] -> batch NbE infile outfile
+    -- TODO: better argument parsing!
+    ["-nn","-fos",infile,outfile] -> batch rtFos NoOpt infile outfile
+    ["-fos",infile,outfile] -> batch rtFos NbE infile outfile
+    ["-nn",infile,outfile] -> batch rtFif NoOpt infile outfile
+    [infile,outfile] -> batch rtFif NbE infile outfile
     xs -> error $ "Batch.main: unexpected args: " ++ show xs
 
-batch :: Opt -> FilePath -> FilePath -> IO ()
-batch opt i o = do
+batch :: RT -> Opt -> FilePath -> FilePath -> IO ()
+batch rt opt i o = do
   s <- readFile i
-  lin <- compileProgLines opt $ lines s
+  lin <- compileProgLines rt opt $ lines s
   writeFile o (show lin)
 
-compileProgLines :: Opt -> [String] ->  IO Lin.Code
-compileProgLines opt xs = loop Predefined.defs xs
+compileProgLines :: RT -> Opt -> [String] ->  IO Lin.Code
+compileProgLines rt opt xs = loop Predefined.defs xs
   where
     loop defs = \case
       line:rest -> do
@@ -35,9 +41,9 @@ compileProgLines opt xs = loop Predefined.defs xs
         case defs of
           [] -> error "found no defs"
           Def name exp : _ -> do
-            putStrLn $ "compiling definition: " ++ show name
+            putStrLn $ "compiling (" ++ show (contFreeVars rt) ++ ") definition: " ++ show name
             let expWithContext = List.foldl (flip wrapDef) exp defs
-            quietCompile opt expWithContext
+            quietCompile rt opt expWithContext
 
 compileLine :: [Def] -> String -> IO [Def]
 compileLine defs line = do

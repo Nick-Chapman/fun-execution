@@ -1,5 +1,5 @@
 
-top: json
+top: json # fails with -nn: TODO: why?
 
 json: run-json-parser-inter
 nfib: run-nfib-inter
@@ -8,6 +8,9 @@ BC = ../bc
 FUN = ../fun
 
 OUT = ../_build/perf
+
+#FUN_COMPILE_FLAGS += -nn
+#FUN_COMPILE_FLAGS += -fos
 
 DEBUG = -g
 OPT = 3
@@ -39,10 +42,8 @@ $(OUT)/engine-$(OPT).o: $(BC)/engine.c $(BC)/value.h .dir
 $(OUT)/%-$(OPT).o: $(OUT)/%.c $(BC)/value.h .dir
 	gcc -I$(BC) -O$(OPT) -Wall -Werror $(DEBUG) -c $< -o $@
 
-MAYBE_FLAG_TO_AVOID_NBE = #-nn
-
 $(OUT)/%.c: $(FUN)/%.fun ../src/*.hs .dir Makefile
-	stack run batch -- $(MAYBE_FLAG_TO_AVOID_NBE) $< $@
+	stack run batch -- $(FUN_COMPILE_FLAGS) $< $@
 
 .dir:
 	mkdir -p $(OUT)

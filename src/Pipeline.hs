@@ -1,5 +1,5 @@
 
-module Pipeline (CompilationError,Code,Value,Instrumentation,check,quietCompile,compile,execute,Opt(..)) where
+module Pipeline (CompilationError,Code,Value,Instrumentation,check,compile,execute,Opt(..)) where
 
 --import Pipeline1
 --import Pipeline2 -- Anf.LetFix{} -> undefined .. needs Opt(..)

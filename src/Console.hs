@@ -7,6 +7,7 @@ import System.Environment (getArgs)
 import qualified System.Console.ANSI as AN
 import qualified System.Console.Haskeline as HL
 import qualified System.Console.Haskeline.History as HL
+import RuntimeCallingConventions (RT(..),ContFreeVars(..))
 
 import Rep_Ast (Def(..),wrapDef)
 import Parse (parse)
@@ -23,7 +24,8 @@ main = do
 data Conf = Conf
   { funFile :: FilePath
   , opt :: Opt
-  , cla ::CommandLineArgs
+  , cla :: CommandLineArgs
+  , rt :: RT
   }
 
 defaultConf :: Conf
@@ -31,6 +33,7 @@ defaultConf = Conf
   { funFile = ".history"
   , opt = NbE
   , cla = CommandLineArgs { argv = \n -> show (10+n) }
+  , rt = RT { contFreeVars = FIF }
   }
 
 parseArgs :: [String] -> Conf
@@ -87,7 +90,7 @@ repl conf n defs = do
 
 -- parse-eval-print
 pep :: Conf -> (String -> IO ()) -> String -> [Def] -> IO (Maybe [Def])
-pep Conf{opt,cla} put line defs = do
+pep Conf{opt,cla,rt} put line defs = do
   case parse line of
 
     Left err -> do
@@ -112,7 +115,7 @@ pep Conf{opt,cla} put line defs = do
       put line
       --putStrLn $ col AN.Magenta $ "ast: " <> show exp
       let expWithContext = List.foldl (flip wrapDef) exp defs
-      compile opt expWithContext >>= \case
+      compile rt opt expWithContext >>= \case
         Left err -> do
           putStrLn $ col AN.Red (show err)
           return Nothing

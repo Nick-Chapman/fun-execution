@@ -5,9 +5,10 @@ import Control.Monad (ap,liftM)
 import qualified Builtin
 import qualified Rep_ClosureConverted as CC
 import Rep_Linear
+import RuntimeCallingConventions (RT)
 
-linearize :: CC.Code -> Code
-linearize cc = runM (walk cc >>= CutCode)
+linearize :: RT -> CC.Code -> Code
+linearize rt cc = runM rt (walk cc >>= CutCode)
 
 walk :: CC.Code -> M CodeSequence
 walk = \case
@@ -73,13 +74,13 @@ data M a where
 
 type State = Code
 
-runM :: M CodeRef -> Code
-runM m = finalCode where
+runM :: RT -> M CodeRef -> Code
+runM rt m = finalCode where
 
   def0 = UnconditionalJump startRef
   (startRef, finalCode) = loop state0 m
 
-  state0 = Code { lits = [], defs = [def0] }
+  state0 = Code { lits = [], defs = [def0], rt }
 
   loop :: State -> M a -> (a,State)
   loop s@Code{lits=lits0,defs=defs0} = \case

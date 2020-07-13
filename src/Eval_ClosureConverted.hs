@@ -8,54 +8,63 @@ import qualified Data.Map.Strict as Map
 
 import Rep_ClosureConverted (Loc(..),Atom(..),Code(..),Value(..))
 import qualified Builtin
-import qualified Config
 import Builtin(CommandLineArgs)
+import RuntimeCallingConventions (RT(..),ContFreeVars(..))
 
 type Result = (Value,Instrumentation)
 type Instrumentation = Counts
 
-data Machine = Machine { cla :: CommandLineArgs, i :: Counts, c :: Control, f :: Frame, k :: Kont }
+data Machine = Machine
+  -- static components
+  { rt :: RT
+  , cla :: CommandLineArgs
+  -- dynamic components
+  , i :: Counts
+  , c :: Control
+  , f :: Frame
+  , k :: Kont
+  }
 
 data Counts  {-i-} = Counts (Map Micro Int)
 type Control {-c-} = Code
 data Frame   {-f-} = Frame { fvs :: [Value], args :: [Value] }
 data Kont    {-k-} = Kdone | Kbind { fvs :: [Value], code :: Code, kont :: Kont }
 
-execute :: CommandLineArgs -> Code -> IO Result
-execute cla = run . install cla
+execute :: RT -> CommandLineArgs -> Code -> IO Result
+execute rt cla = run . install rt cla
 
-install :: CommandLineArgs ->  Code -> Machine
-install cla code = Machine cla counts0 code frame0 Kdone where frame0 = Frame [] []
+install :: RT -> CommandLineArgs ->  Code -> Machine
+install rt cla code = Machine rt cla counts0 code frame0 Kdone where frame0 = Frame [] []
 
 run :: Machine -> IO Result
-run Machine{cla,i,c=code0,f,k} = do
+run Machine{rt,cla,i,c=code0,f,k} = do
  --print "run"
  --let Frame{fvs} = f in print (length fvs)
  --print code0
  case code0 of
 
   Return atom ->
-    ret cla i (atomic f atom) k
+    ret rt cla i (atomic f atom) k
 
   Tail func args ->
-    enter cla i (atomic f func) (map (atomic f) args) k
+    enter rt cla i (atomic f func) (map (atomic f) args) k
 
   LetContinue{freeFollow,rhs,follow} ->
-    run $ Machine cla (tick (saves++[DoPushContinuation]) i) rhs f k'
+    run $ Machine rt cla (tick (saves++[DoPushContinuation]) i) rhs f k'
     where
       saves = map (\_ -> DoSaveFree) freeFollow
       k' = Kbind {fvs = map (locate f) freeFollow, code = follow, kont=k}
 
   LetPrim1 prim a1 code -> do
     v <- doPrim1 cla prim (atomic f a1)
-    run $ Machine cla (tick [DoPrim1 prim] i) code (push v f) k
+    run $ Machine rt cla (tick [DoPrim1 prim] i) code (push v f) k
 
   LetPrim2 prim (a1,a2) code -> do
     v <- doPrim2 prim (atomic f a1) (atomic f a2)
-    run $ Machine cla (tick [DoPrim2 prim] i) code (push v f) k
+    run $ Machine rt cla (tick [DoPrim2 prim] i) code (push v f) k
 
   LetClose {freeBody,arity,body,code} ->
-    run $ Machine cla (tick (saves++[DoMakeClosure]) i) code f' k
+    run $ Machine rt cla (tick (saves++[DoMakeClosure]) i) code f' k
     where
       saves = map (\_ -> DoSaveFree) freeBody
       f' = push clo f
@@ -63,35 +72,35 @@ run Machine{cla,i,c=code0,f,k} = do
 
   Branch a1 c2 c3 -> do
     c <- branch c2 c3 (atomic f a1)
-    run $ Machine cla (tick [DoBranch] i) c f k
+    run $ Machine rt cla (tick [DoBranch] i) c f k
 
-ret :: CommandLineArgs -> Counts -> Value -> Kont -> IO Result
-ret cla i v = \case
+ret :: RT -> CommandLineArgs -> Counts -> Value -> Kont -> IO Result
+ret rt cla i v = \case
   Kdone -> return (v, i)
   Kbind {fvs,code,kont} ->
-    case Config.fvsOnStack of
-      True ->
+    case contFreeVars rt of
+      FOS ->
         -- Dump free vars onto stack
-        run $ Machine cla i code Frame {fvs = [], args = fvs++[v]} kont
-      False ->
+        run $ Machine rt cla i code Frame {fvs = [], args = fvs++[v]} kont
+      FIF ->
         -- Leave free vars in frame
-        run $ Machine cla i code Frame {fvs = fvs, args = [v]} kont
+        run $ Machine rt cla i code Frame {fvs = fvs, args = [v]} kont
 
-enter :: CommandLineArgs -> Counts -> Value -> [Value] -> Kont -> IO Result
-enter cla i func args k = do
+enter :: RT -> CommandLineArgs -> Counts -> Value -> [Value] -> Kont -> IO Result
+enter rt cla i func args k = do
  --print "enter"
  --print (func,args)
  case func of
   Base bv -> fail $ "cant enter a non-closure: " ++ show bv
   clo@Clo{fvs,arity,body}
     | arity == got -> do
-        run $ Machine cla (tick [DoEnter] i) body Frame {fvs,args} k
+        run $ Machine rt cla (tick [DoEnter] i) body Frame {fvs,args} k
     | arity < got -> do
         let (myArgs,overArgs) = splitAt arity args
-        let k' = makeOverAppK overArgs k
-        run $ Machine cla (tick [DoPushOverApp (length overArgs), DoEnter] i) body Frame {fvs,args = myArgs} k'
+        let k' = makeOverAppK rt overArgs k
+        run $ Machine rt cla (tick [DoPushOverApp (length overArgs), DoEnter] i) body Frame {fvs,args = myArgs} k'
     | otherwise -> do
-        ret cla (tick [DoMakePap {got,need=arity}] i) (makePap nMissing clo args) k
+        ret rt cla (tick [DoMakePap {got,need=arity}] i) (makePap nMissing clo args) k
     where
       nMissing = arity - got
       got = length args
@@ -132,15 +141,15 @@ returnOrFail = \case
   Left e -> fail $ show e
   Right a -> return a
 
-makeOverAppK :: [Value] -> Kont -> Kont
-makeOverAppK overArgs kont = Kbind {fvs=overArgs, code, kont}
+makeOverAppK :: RT -> [Value] -> Kont -> Kont
+makeOverAppK rt overArgs kont = Kbind {fvs=overArgs, code, kont}
   where
     n = length overArgs
-    code = case Config.fvsOnStack of
-      True ->
+    code = case contFreeVars rt of
+      FOS ->
         -- When a continuation is entered, free vars are pushed to the stack:
         Tail (ALoc (LocArg n)) [ ALoc (LocArg i) | i <- [0 .. n-1] ]
-      False ->
+      FIF ->
         -- When a continuation is entered, free vars are found in the frame.
         Tail (ALoc (LocArg 0)) [ ALoc (LocFree i) | i <- [0 .. n-1] ]
 

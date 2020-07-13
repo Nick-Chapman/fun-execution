@@ -2,8 +2,8 @@
 -- Linearized code seqeunces
 module Rep_Linear where
 
+import RuntimeCallingConventions (RT,fvsOnStack)
 import qualified Builtin
-import qualified Config
 
 data CodeSequence
   = UnconditionalJump CodeRef
@@ -27,15 +27,16 @@ newtype CodeRef = CodeRef Index deriving (Eq)
 data Code = Code
   { lits :: [Builtin.BV]
   , defs :: [CodeSequence]
+  , rt :: RT
   }
 
 ----------------------------------------------------------------------
 
 instance Show Code where
-  show Code{lits,defs} =
+  show Code{lits,defs,rt} =
     unlines $
     [ "#include \"value.h\""
-    , "const bool_t config_fvs_on_stack = " ++ show Config.fvsOnStack ++ ";"
+    , "const bool_t config_fvs_on_stack = " ++ show (fvsOnStack rt) ++ ";"
     , "value lits[] = {"
     ] ++
     [ "   (value) " ++ show lit ++ "," | lit <- lits ] ++

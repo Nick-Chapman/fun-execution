@@ -16,6 +16,7 @@ import Rep_Ast (Exp)
 import Rep_Linear (Code)
 import Eval_Linear (Value,Instrumentation)
 import CheckClosed_Ast (checkClosed)
+import RuntimeCallingConventions (RT)
 import Trans_Normalize (normalize)
 import Trans_Ast2Anf (flatten)
 import Trans_Anf2CC (convert)
@@ -34,8 +35,8 @@ put :: String -> IO ()
 put = if optPut then putStr else \_ -> return ()
   where optPut = False  -- TODO: select via opt
 
-quietCompile :: Opt -> Exp -> IO Code
-quietCompile opt exp = do
+quietCompile :: RT -> Opt -> Exp -> IO Code
+quietCompile rt opt exp = do
   put $ col AN.Yellow (show exp)
   exp' <-
     case opt of
@@ -46,9 +47,9 @@ quietCompile opt exp = do
         pure exp'
   let anf = flatten exp'
   put $ col AN.Blue (show anf)
-  let cc = convert anf
+  let cc = convert rt anf
   put $ col AN.Magenta (show cc)
-  let lin = linearize cc
+  let lin = linearize rt cc
   put $ col AN.White (show lin)
   return lin
 
@@ -57,11 +58,11 @@ col c s =
   AN.setSGRCode [AN.SetColor AN.Foreground AN.Vivid c] <> s <>
   AN.setSGRCode [AN.SetColor AN.Foreground AN.Vivid AN.White]
 
-compile :: Opt -> Exp -> IO (Either CompilationError Code)
-compile opt exp = do
+compile :: RT -> Opt -> Exp -> IO (Either CompilationError Code)
+compile rt opt exp = do
   case checkClosed exp of
     Just err -> return $ Left $ CompilationError $ show err
-    Nothing -> Right <$> quietCompile opt exp
+    Nothing -> Right <$> quietCompile rt opt exp
 
 execute :: CommandLineArgs -> Code -> IO (Either String (Value, Instrumentation))
 execute cla x = do

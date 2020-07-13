@@ -1,5 +1,5 @@
 
-module Pipeline3 (CompilationError,Code,Value,Instrumentation,check,compile,execute,quietCompile,Opt(..)) where
+module Pipeline3 (CompilationError,Code,Value,Instrumentation,check,compile,execute,Opt(..)) where
 
 import Control.Exception(try)
 import qualified System.Console.ANSI as AN
@@ -8,15 +8,14 @@ import qualified System.Console.ANSI as AN
 
 import Builtin (CommandLineArgs)
 import Rep_Ast (Exp)
-import Rep_ClosureConverted (Code)
 import Eval_ClosureConverted (Value,Instrumentation)
 import CheckClosed_Ast (checkClosed)
+import RuntimeCallingConventions (RT)
 import Trans_Normalize (normalize)
 import Trans_Ast2Anf (flatten)
 import Trans_Anf2CC (convert)
-import Trans_CC2Linear (linearize)
 import qualified Eval_ClosureConverted as Eval (execute)
-import qualified Rep_Linear as Lin
+import qualified Rep_ClosureConverted as Clo
 
 data Opt = NoOpt | NbE
 
@@ -26,10 +25,12 @@ instance Show CompilationError where show = unCompilationError
 check :: Exp -> Maybe CompilationError
 check exp = (CompilationError . show) <$> checkClosed exp
 
+data Code = Code { cc :: Clo.Code, rt :: RT }
+
 -- quick hackto allow switch NBE on/off -- TODO: tidy this up
 -- TODO: compile should redo the check
-compile :: Opt -> Exp -> IO (Either CompilationError Code)
-compile opt exp = do
+compile :: RT -> Opt -> Exp -> IO (Either CompilationError Code)
+compile rt opt exp = do
   case checkClosed exp of
     Just err -> return $ Left $ CompilationError $ show err
     Nothing -> do
@@ -43,9 +44,9 @@ compile opt exp = do
             pure exp'
       let anf = flatten exp'
       put $ col AN.Blue (show anf)
-      let cc = convert anf
+      let cc = convert rt anf
       put $ col AN.Magenta (show cc)
-      return $ Right cc
+      return $ Right $ Code {cc,rt}
   where
     put :: String -> IO ()
     put = if optPut then putStr else \_ -> return ()
@@ -53,19 +54,10 @@ compile opt exp = do
     optPut = False  -- TODO: select via opt
 
 execute :: CommandLineArgs -> Code -> IO (Either String (Value, Instrumentation))
-execute cla x = do
-  either (Left . show) Right <$> (try @IOError $ Eval.execute cla x)
+execute cla Code{cc,rt} = do
+  either (Left . show) Right <$> (try @IOError $ Eval.execute rt cla cc)
 
 col :: AN.Color -> String -> String
 col c s =
   AN.setSGRCode [AN.SetColor AN.Foreground AN.Vivid c] <> s <>
   AN.setSGRCode [AN.SetColor AN.Foreground AN.Vivid AN.White]
-
-
-quietCompile :: Opt -> Exp -> IO Lin.Code
-quietCompile opt exp = do
-  let exp' = case opt of NoOpt -> exp; NbE -> normalize exp
-  let anf = flatten exp'
-  let cc = convert anf
-  let lin = linearize cc
-  return lin
