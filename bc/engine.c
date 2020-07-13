@@ -5,6 +5,8 @@
 
 #include "value.h"
 
+//#define FVS_ON_STACK // must be consistent with compiler (../src/Config.hs)
+
 typedef int bool_t;
 
 #define BaseContinuationSize 3
@@ -311,6 +313,7 @@ void push_continuation(char* code,int nFree) {
 }
 
 void return_to_continuation(value v) {
+#ifdef FVS_ON_STACK
   int nFree = (long)kont[0];
   set_code(kont[1]);
   frame = 0;
@@ -321,6 +324,13 @@ void return_to_continuation(value v) {
   }
   push_stack(v);
   kont = kont[2];
+#else
+  set_code(kont[1]);
+  frame = &kont[BaseContinuationSize];
+  sp = stack;
+  push_stack(v);
+  kont = kont[2];
+#endif
 }
 
 value* make_closure(int codeRef, int nFree) {
@@ -531,11 +541,19 @@ static char* pap_code[] =
 
 static char* overapp_code[] =
   {
+#ifdef FVS_ON_STACK
    "t110",
    "t2201",
    "t33012",
    "t440123",
    "t5501234",
+#else
+   "t01~0",
+   "t02~0~1",
+   "t03~0~1~2",
+   "t04~0~1~2~4",
+   "t05~0~1~2~3~4",
+#endif
    0,
   };
 
