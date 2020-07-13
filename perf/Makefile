@@ -5,7 +5,7 @@
 EX = json-parser
 #EX = nfib
 
-top: perf-$(EX)-inter-3
+top: perf-$(EX)-inter
 
 BC = ../bc
 FUN = ../fun
@@ -13,33 +13,36 @@ FUN = ../fun
 OUT = ../_build/perf
 
 DEBUG = -g
+OPT = 3
 
 .PRECIOUS: $(OUT)/%
 .SECONDARY:
 
-perf-$(EX)-inter-%: $(OUT)/$(EX)-inter-%.exe
+perf-$(EX)-inter: perf-$(EX)-inter-$(OPT)
+
+perf-$(EX)-inter-$(OPT): $(OUT)/$(EX)-inter-$(OPT).exe
 	./$<
 
-perf-$(EX)-native-%: $(OUT)/$(EX)-native-%.exe
+perf-$(EX)-native-$(OPT): $(OUT)/$(EX)-native-$(OPT).exe
 	./$<
 
-$(OUT)/$(EX)-native-%.exe: $(OUT)/$(EX)-native-%.o
+$(OUT)/$(EX)-native-$(OPT).exe: $(OUT)/$(EX)-native-$(OPT).o
 	gcc $^ -o $@
 
-$(OUT)/$(EX)-native-%.o: $(EX)-native.c .dir
-	gcc -O$(patsubst $(OUT)/$(EX)-native-%.o,%,$@) -Wall -Werror $(DEBUG) -c $< -o $@
+$(OUT)/$(EX)-native-$(OPT).o: $(EX)-native.c .dir
+	gcc -O$(OPT) -Wall -Werror $(DEBUG) -c $< -o $@
 
-$(OUT)/$(EX)-inter-%.exe: $(OUT)/$(EX)-inter-%.o $(OUT)/engine-%.o $(OUT)/$(EX)-%.o
+$(OUT)/$(EX)-inter-$(OPT).exe: $(OUT)/$(EX)-inter-$(OPT).o $(OUT)/engine-$(OPT).o $(OUT)/$(EX)-$(OPT).o
 	gcc $^ -o $@
 
-$(OUT)/$(EX)-inter-%.o: $(EX)-inter.c .dir
-	gcc -I$(BC) -O$(patsubst $(OUT)/$(EX)-inter-%.o,%,$@) -Wall -Werror $(DEBUG) -c $< -o $@
+$(OUT)/$(EX)-inter-$(OPT).o: $(EX)-inter.c .dir
+	gcc -I$(BC) -O$(OPT) -Wall -Werror $(DEBUG) -c $< -o $@
 
-$(OUT)/engine-%.o: $(BC)/engine.c $(BC)/value.h .dir
-	gcc -I$(BC) -O$(patsubst $(OUT)/engine-%.o,%,$@) -DNDEBUG --param large-function-growth=2000 -Winline -Wall -Werror $(DEBUG) -c $< -o $@
+$(OUT)/engine-$(OPT).o: $(BC)/engine.c $(BC)/value.h .dir
+	gcc -I$(BC) -O$(OPT) -DNDEBUG --param large-function-growth=2000 -Winline -Wall -Werror $(DEBUG) -c $< -o $@
 
-$(OUT)/$(EX)-%.o: $(OUT)/$(EX).c $(BC)/value.h .dir
-	gcc -I$(BC) -O$(patsubst $(OUT)/$(EX)-%.o,%,$@) -Wall -Werror $(DEBUG) -c $< -o $@
+$(OUT)/$(EX)-$(OPT).o: $(OUT)/$(EX).c $(BC)/value.h .dir
+	gcc -I$(BC) -O$(OPT) -Wall -Werror $(DEBUG) -c $< -o $@
 
 MAYBE_FLAG_TO_AVOID_NBE = #-nn
 
