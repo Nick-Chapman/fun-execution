@@ -7,8 +7,6 @@
 
 //#define TRACE
 
-const bool_t config_fvs_on_stack = False;
-
 #define heap_size 100000000
 #define temps_size 100
 

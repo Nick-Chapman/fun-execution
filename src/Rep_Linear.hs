@@ -3,6 +3,7 @@
 module Rep_Linear where
 
 import qualified Builtin
+import qualified Config
 
 data CodeSequence
   = UnconditionalJump CodeRef
@@ -34,6 +35,7 @@ instance Show Code where
   show Code{lits,defs} =
     unlines $
     [ "#include \"value.h\""
+    , "const bool_t config_fvs_on_stack = " ++ show Config.fvsOnStack ++ ";"
     , "value lits[] = {"
     ] ++
     [ "   (value) " ++ show lit ++ "," | lit <- lits ] ++
