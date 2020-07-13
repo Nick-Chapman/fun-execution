@@ -1,10 +1,14 @@
 
 module Eval_Linear (execute,Value,Instrumentation) where
 
+import Control.Monad (when)
 import Data.Maybe (fromJust)
 import Rep_Linear (Code(..),CodeSequence(..),CodeRef(..),LitRef(..),Index(..),ValRef(..))
 import Builtin (CommandLineArgs,BV(..),Prim1,Prim2,apply1,apply2)
 import qualified Config
+
+trace :: Bool
+trace = False
 
 data Value
   = Base Builtin.BV
@@ -38,7 +42,7 @@ execute cla Code{lits,defs} = do v <- run0 machine0 seq0; return (v,NoInstrument
 
     run0 :: Machine -> CodeSequence -> IO Value
     run0 m seq = do
-      --putStrLn $ "set_code: " <> show seq
+      when trace $ putStrLn $ "set_code: " <> show seq
       run m seq
 
     run :: Machine -> CodeSequence -> IO Value

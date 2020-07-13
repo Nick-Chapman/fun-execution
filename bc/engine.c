@@ -7,24 +7,15 @@
 
 //#define TRACE
 
-//#define FVS_ON_STACK // must be consistent with compiler (../src/Config.hs)
-
-typedef int bool_t;
-
+const bool_t config_fvs_on_stack = True;
 
 #define heap_size 100000000
 #define temps_size 100
 
 static char* pap_code[];
-static char* overapp_code[];
+static char** overapp_code;
 
-#ifdef FVS_ON_STACK
-#define BaseContinuationSize 3
-static value final_continuation[] = { (value)0, (value)"", (value)0 };
-#else
-#define BaseContinuationSize 2
-static value final_continuation[] = { (value)"", (value)0 };
-#endif
+#define BaseContinuationSize (config_fvs_on_stack ? 3 : 2)
 
 static value heap[heap_size];
 static value temps1[temps_size];
@@ -40,8 +31,6 @@ inline static int digit();
 inline static value argument();
 inline static void push_stack(value v);
 inline static void push_arg(value v);
-inline static void push_continuation(char* code,int nFree);
-inline static void return_to_continuation(value v);
 inline static value* make_closure(int codeRef, int nFree);
 inline static void enter_closure(value* clo);
 inline static void function_arity_check(int need);
@@ -54,6 +43,9 @@ noinline static char* string_of_int(long arg);
 noinline static char* string_concat(char* s1, char* s2);
 noinline static char* get_pap_got_need(unsigned got, unsigned need);
 noinline static char* get_overapp_extra(unsigned extra);
+
+static void (*push_continuation)(char* code,int nFree);
+static void (*return_to_continuation)(value v);
 
 static value* stack;
 static value* args;
@@ -295,38 +287,28 @@ void check_overapp_ref(unsigned n) {
 }
 #endif
 
-void init_machine() {
-#ifndef NDEBUG
-  init_max_code_ref();
-  init_max_pap_ref();
-  init_max_overapp_ref();
-#endif
-  kont = &final_continuation[0];
-  set_code(get_code_ref(0)); // can fail if there is no code
-  stack = &temps1[0];
-  args = &temps2[0];
-  hp = &heap[0];
-  sp = stack;
-  ap = args;
-}
+// FOS = "free variables on stack"
+// FIF = "free variables in frame"
 
+static value final_continuation_FOS[] = { (value)0, (value)"", (value)0 };
+static value final_continuation_FIF[] = { (value)"", (value)0 };
 
-void push_continuation(char* code,int nFree) {
+void push_continuation_FOS(char* code,int nFree) {
   value* k = heap_alloc(nFree + BaseContinuationSize);
-#ifdef FVS_ON_STACK
   k[0] = (value)(long)nFree;
   k[1] = code;
   k[2] = kont;
   kont = k;
-#else
+}
+
+void push_continuation_FIF(char* code,int nFree) {
+  value* k = heap_alloc(nFree + BaseContinuationSize);
   k[0] = code;
   k[1] = kont;
   kont = k;
-#endif
 }
 
-void return_to_continuation(value v) {
-#ifdef FVS_ON_STACK
+void return_to_continuation_FOS(value v) {
   int nFree = (long)kont[0];
   set_code(kont[1]);
   frame = 0;
@@ -337,13 +319,70 @@ void return_to_continuation(value v) {
   }
   push_stack(v);
   kont = kont[2];
-#else
+}
+
+void return_to_continuation_FIF(value v) {
   set_code(kont[0]);
   frame = &kont[BaseContinuationSize];
   sp = stack;
   push_stack(v);
   kont = kont[1];
+}
+
+static char* overapp_code_FOS[] =
+  {
+   "t*11*0",
+   "t*22*0*1",
+   "t*33*0*1*2",
+   "t*44*0*1*2*3",
+   "t*55*0*1*2*3*4",
+   0,
+  };
+
+static char* overapp_code_FIF[] =
+  {
+   "t*01~0",
+   "t*02~0~1",
+   "t*03~0~1~2",
+   "t*04~0~1~2~4",
+   "t*05~0~1~2~3~4",
+   0,
+  };
+
+void init_machine() {
+
+  overapp_code =
+    config_fvs_on_stack
+    ? overapp_code_FOS
+    : overapp_code_FIF;
+
+#ifndef NDEBUG
+  init_max_code_ref();
+  init_max_pap_ref();
+  init_max_overapp_ref();
 #endif
+
+  kont =
+    config_fvs_on_stack
+    ? final_continuation_FOS
+    : final_continuation_FIF;
+
+  push_continuation =
+    config_fvs_on_stack
+    ? &push_continuation_FOS
+    : &push_continuation_FIF;
+
+  return_to_continuation =
+    config_fvs_on_stack
+    ? &return_to_continuation_FOS
+    : &return_to_continuation_FIF;
+
+  set_code(get_code_ref(0)); // can fail if there is no code
+  stack = &temps1[0];
+  args = &temps2[0];
+  hp = &heap[0];
+  sp = stack;
+  ap = args;
 }
 
 value* make_closure(int codeRef, int nFree) {
@@ -559,28 +598,11 @@ static char* pap_code[] =
    0,
   };
 
-static char* overapp_code[] =
-  {
-#ifdef FVS_ON_STACK
-   "t*11*0",
-   "t*22*0*1",
-   "t*33*0*1*2",
-   "t*44*0*1*2*3",
-   "t*55*0*1*2*3*4",
-#else
-   "t*01~0",
-   "t*02~0~1",
-   "t*03~0~1~2",
-   "t*04~0~1~2~4",
-   "t*05~0~1~2~3~4",
-#endif
-   0,
-  };
 
-
-// Short term hack to allow adding pythagorian to regression.  The real solution is to tag
-// values to distinguish unboxed numbers from heap objects. And for heap objects to have a
-// descriptor word. All this is needed anyway to implement GC.
+// Short term hack to allow adding pythagorian to regression.  The
+// real solution is to tag values to distinguish unboxed numbers from
+// heap objects. And for heap objects to have a descriptor word. All
+// this is needed anyway to implement GC.
 
 static bool_t temp_looks_like_string(value v) {
   return v > (value)(1L<<40);

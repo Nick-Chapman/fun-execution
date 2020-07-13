@@ -10,7 +10,7 @@ BC = bc
 
 OUT = _build
 
-DEBUG = # -g
+DEBUG = -g
 
 .PRECIOUS: $(OUT)/%
 .SECONDARY:
