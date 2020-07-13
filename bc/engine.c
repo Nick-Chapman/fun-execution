@@ -7,7 +7,7 @@
 
 //#define TRACE
 
-const bool_t config_fvs_on_stack = True;
+const bool_t config_fvs_on_stack = False;
 
 #define heap_size 100000000
 #define temps_size 100
@@ -147,6 +147,7 @@ value run_engine(int argc, char* argv[]) {
       long a = (long)argument();
       long b = (long)argument();
       long res = a + b;
+      //printf("add('%ld',%ld) -> %ld\n",a,b,res);
       push_stack((value)res);
       break;
     }
@@ -344,7 +345,7 @@ static char* overapp_code_FIF[] =
    "t*01~0",
    "t*02~0~1",
    "t*03~0~1~2",
-   "t*04~0~1~2~4",
+   "t*04~0~1~2~3",
    "t*05~0~1~2~3~4",
    0,
   };
