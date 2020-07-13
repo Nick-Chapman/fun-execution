@@ -15,11 +15,11 @@ DEBUG = # -g
 .PRECIOUS: $(OUT)/%
 .SECONDARY:
 
-regression.diffs: test/test.expected $(OUT)/test.out
-	diff $^
+regression.diffs: test/liberal-diff.sh test/test.expected $(OUT)/test.out
+	$^
 
-regression-nn.diffs: test/test-nn.expected $(OUT)/test-nn.out
-	diff $^
+regression-nn.diffs: test/liberal-diff.sh test/test-nn.expected $(OUT)/test-nn.out
+	$^
 
 $(OUT)/test.out: test/test.sh $(EXES)
 	test/test.sh > $@
