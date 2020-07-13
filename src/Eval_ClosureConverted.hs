@@ -8,6 +8,7 @@ import qualified Data.Map.Strict as Map
 
 import Rep_ClosureConverted (Loc(..),Atom(..),Code(..),Value(..))
 import qualified Builtin
+import qualified Config
 import Builtin(CommandLineArgs)
 
 type Result = (Value,Instrumentation)
@@ -67,7 +68,14 @@ run Machine{cla,i,c=code0,f,k} = do
 ret :: CommandLineArgs -> Counts -> Value -> Kont -> IO Result
 ret cla i v = \case
   Kdone -> return (v, i)
-  Kbind {fvs,code,kont} -> run $ Machine cla i code Frame {fvs = [], args = fvs++[v]} kont
+  Kbind {fvs,code,kont} ->
+    case Config.fvsOnStack of
+      True ->
+        -- Dump free vars onto stack
+        run $ Machine cla i code Frame {fvs = [], args = fvs++[v]} kont
+      False ->
+        -- Leave free vars in frame
+        run $ Machine cla i code Frame {fvs = fvs, args = [v]} kont
 
 enter :: CommandLineArgs -> Counts -> Value -> [Value] -> Kont -> IO Result
 enter cla i func args k = do
@@ -127,15 +135,14 @@ returnOrFail = \case
 makeOverAppK :: [Value] -> Kont -> Kont
 makeOverAppK overArgs kont = Kbind {fvs=overArgs, code, kont}
   where
--- OLD: When a continuation is entered, free vars are found in the frame.
-{-
-    code = Tail (ALoc (LocArg 0)) args
-    args = [ ALoc (LocFree i) | i <- [0 .. n-1] ]
--}
--- When a continuation is entered, free vars are pushed to the stack:
-    code = Tail (ALoc (LocArg n)) args
-    args = [ ALoc (LocArg i) | i <- [0 .. n-1] ]
     n = length overArgs
+    code = case Config.fvsOnStack of
+      True ->
+        -- When a continuation is entered, free vars are pushed to the stack:
+        Tail (ALoc (LocArg n)) [ ALoc (LocArg i) | i <- [0 .. n-1] ]
+      False ->
+        -- When a continuation is entered, free vars are found in the frame.
+        Tail (ALoc (LocArg 0)) [ ALoc (LocFree i) | i <- [0 .. n-1] ]
 
 makePap :: Int -> Value -> [Value] -> Value
 makePap nMissing clo argsSoFar = clo2

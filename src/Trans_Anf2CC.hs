@@ -11,6 +11,7 @@ import qualified Data.Set as Set
 
 import Rep_Anf (Var(..))
 import Rep_ClosureConverted (Loc(..),Atom(..),Code(..))
+import qualified Config
 import qualified Rep_Anf as Anf
 
 convert :: Anf.Code -> Code
@@ -54,7 +55,10 @@ convertAnf = \case
 
   Anf.LetCode y rhs follow0 -> do
     let fvs = freeVarList ([y],follow0)
-    let follow = runM [] (Extend (fvs++[y]) $ convertAnf follow0)
+    let follow =
+          case Config.fvsOnStack of
+            True  -> runM [] (Extend (fvs++[y]) $ convertAnf follow0)
+            False -> runM fvs (Extend [y] $ convertAnf follow0)
     freeFollow <- mapM Lookup fvs
     rhs <- convertAnf rhs
     return $ LetContinue {freeFollow,rhs,follow}
