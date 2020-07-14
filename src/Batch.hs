@@ -6,7 +6,7 @@ import qualified Data.List as List
 import qualified System.Console.ANSI as AN
 
 import Parse (parse)
-import Pipeline4 (check,quietCompile,Opt(..)) -- batch fixed to pipeline 4
+import Pipeline (check,quietCompile,Opt(..))
 import Rep1_Ast (Def(..),wrapDef)
 import RuntimeCallingConventions (RT(..),ContFreeVars(..))
 import qualified Predefined (defs)
