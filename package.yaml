@@ -56,6 +56,6 @@ executables:
     main:                apps/batch.hs
     dependencies:        fun-execution
 
-  json-parser:
-    main:                apps/json-parser.hs
-    dependencies:        fun-execution
+  perf-haskell-json-parser:
+    source-dirs:         hperf
+    main:                SpeedJsonParser

@@ -1,0 +1,6 @@
+
+json-parser writen directly in Haskell
+
+JsonParser.hs corresponds to the fun example ../fun/json-parser.fun
+
+The idea is to allow a speed comparison between Haskell and Fun.
