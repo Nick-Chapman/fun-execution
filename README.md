@@ -43,4 +43,6 @@ The normalization phase implements _normalization by evaluation_. The phase can 
     $ stack run batch -- -nn fun/nfib.fun >(cat)
 
 
-The intermediate representions of the compiler can be viewed using the `-view` flag of the front-ends. (TODO)
+The intermediate representions of the compiler can be viewed using the `-view` flag of the front-ends.
+
+    $ stack run batch -- -view fun/nfib.fun /dev/null

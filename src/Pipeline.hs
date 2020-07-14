@@ -31,12 +31,9 @@ instance Show CompilationError where show = unCompilationError
 check :: Exp -> Maybe CompilationError
 check exp = (CompilationError . show) <$> checkClosed exp
 
-put :: String -> IO ()
-put = if optPut then putStr else \_ -> return ()
-  where optPut = False  -- TODO: select via opt
-
-quietCompile :: RT -> Opt -> Exp -> IO Code
-quietCompile rt opt exp = do
+quietCompile :: Bool -> RT -> Opt -> Exp -> IO Code
+quietCompile view rt opt exp = do
+  let put = if view then putStr else \_ -> return ()
   put $ col AN.Yellow (show exp)
   exp' <-
     case opt of
@@ -58,11 +55,11 @@ col c s =
   AN.setSGRCode [AN.SetColor AN.Foreground AN.Vivid c] <> s <>
   AN.setSGRCode [AN.SetColor AN.Foreground AN.Vivid AN.White]
 
-compile :: RT -> Opt -> Exp -> IO (Either CompilationError Code)
-compile rt opt exp = do
+compile :: Bool -> RT -> Opt -> Exp -> IO (Either CompilationError Code)
+compile view rt opt exp = do
   case checkClosed exp of
     Just err -> return $ Left $ CompilationError $ show err
-    Nothing -> Right <$> quietCompile rt opt exp
+    Nothing -> Right <$> quietCompile view rt opt exp
 
 execute :: CommandLineArgs -> Code -> IO (Either String (Value, Instrumentation))
 execute cla x = do

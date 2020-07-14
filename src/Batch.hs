@@ -18,20 +18,24 @@ main = do
   let rtFif = RT { contFreeVars = FIF }
   getArgs >>= \case
     -- TODO: better argument parsing!
-    ["-nn","-fos",infile,outfile] -> batch rtFos NoOpt infile outfile
-    ["-fos",infile,outfile] -> batch rtFos NbE infile outfile
-    ["-nn",infile,outfile] -> batch rtFif NoOpt infile outfile
-    [infile,outfile] -> batch rtFif NbE infile outfile
+    ["-view","-nn","-fos",infile,outfile] -> batch True rtFos NoOpt infile outfile
+    ["-view","-fos",infile,outfile] -> batch True rtFos NbE infile outfile
+    ["-view","-nn",infile,outfile] -> batch True rtFif NoOpt infile outfile
+    ["-view",infile,outfile] -> batch True rtFif NbE infile outfile
+    ["-nn","-fos",infile,outfile] -> batch False rtFos NoOpt infile outfile
+    ["-fos",infile,outfile] -> batch False rtFos NbE infile outfile
+    ["-nn",infile,outfile] -> batch False rtFif NoOpt infile outfile
+    [infile,outfile] -> batch False rtFif NbE infile outfile
     xs -> error $ "Batch.main: unexpected args: " ++ show xs
 
-batch :: RT -> Opt -> FilePath -> FilePath -> IO ()
-batch rt opt i o = do
+batch :: Bool -> RT -> Opt -> FilePath -> FilePath -> IO ()
+batch view rt opt i o = do
   s <- readFile i
-  lin <- compileProgLines rt opt $ lines s
+  lin <- compileProgLines view rt opt $ lines s
   writeFile o (show lin)
 
-compileProgLines :: RT -> Opt -> [String] ->  IO Lin.Code
-compileProgLines rt opt xs = loop Predefined.defs xs
+compileProgLines :: Bool -> RT -> Opt -> [String] ->  IO Lin.Code
+compileProgLines view rt opt xs = loop Predefined.defs xs
   where
     loop defs = \case
       line:rest -> do
@@ -43,7 +47,7 @@ compileProgLines rt opt xs = loop Predefined.defs xs
           Def name exp : _ -> do
             putStrLn $ "compiling (" ++ show (contFreeVars rt) ++ ") definition: " ++ show name
             let expWithContext = List.foldl (flip wrapDef) exp defs
-            quietCompile rt opt expWithContext
+            quietCompile view rt opt expWithContext
 
 compileLine :: [Def] -> String -> IO [Def]
 compileLine defs line = do

@@ -26,6 +26,7 @@ data Conf = Conf
   , opt :: Opt
   , cla :: CommandLineArgs
   , rt :: RT
+  , view :: Bool
   }
 
 defaultConf :: Conf
@@ -34,6 +35,7 @@ defaultConf = Conf
   , opt = NbE
   , cla = CommandLineArgs { argv = \n -> show (10+n) }
   , rt = RT { contFreeVars = FIF }
+  , view = False
   }
 
 parseArgs :: [String] -> Conf
@@ -42,6 +44,7 @@ parseArgs args = loop args defaultConf
     loop args conf = case args of
       [] -> conf
       "-nn":rest -> loop rest $ conf { opt = NoOpt }
+      "-view":rest -> loop rest $ conf { view = True }
       funFile:rest -> loop rest $ conf { funFile }
 
 start :: Conf -> HL.InputT IO ()
@@ -90,7 +93,7 @@ repl conf n defs = do
 
 -- parse-eval-print
 pep :: Conf -> (String -> IO ()) -> String -> [Def] -> IO (Maybe [Def])
-pep Conf{opt,cla,rt} put line defs = do
+pep Conf{opt,cla,rt,view} put line defs = do
   case parse line of
 
     Left err -> do
@@ -115,7 +118,7 @@ pep Conf{opt,cla,rt} put line defs = do
       put line
       --putStrLn $ col AN.Magenta $ "ast: " <> show exp
       let expWithContext = List.foldl (flip wrapDef) exp defs
-      compile rt opt expWithContext >>= \case
+      compile view rt opt expWithContext >>= \case
         Left err -> do
           putStrLn $ col AN.Red (show err)
           return Nothing
