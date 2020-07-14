@@ -3,10 +3,10 @@ module Pipeline2 (CompilationError,Code,Value,Instrumentation,check,compile,exec
 
 -- Pipeline: Ast -> Anf
 
-import Rep_Ast (Exp)
-import Rep_Anf (Code)
+import Rep1_Ast (Exp)
+import Rep2_Anf (Code)
 import CheckClosed_Ast (checkClosed)
-import Trans_Ast2Anf (flatten)
+import Trans12_Ast2Anf (flatten)
 import Eval_Anf (Value,evaluate)
 
 data CompilationError = CompilationError { unCompilationError :: String }

@@ -1,7 +1,7 @@
 
 module Predefined(defs) where
 
-import Rep_Ast(Var(..),Exp(..),Def(..),mkELam)
+import Rep1_Ast(Var(..),Exp(..),Def(..),mkELam)
 import Builtin
 
 defs :: [Def]

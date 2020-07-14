@@ -1,10 +1,10 @@
 
-module Trans_CC2Linear(linearize) where
+module Trans34_Clo2Lin(linearize) where
 
 import Control.Monad (ap,liftM)
 import qualified Builtin
-import qualified Rep_ClosureConverted as CC
-import Rep_Linear
+import qualified Rep3_Clo as CC
+import Rep4_Lin
 import RuntimeCallingConventions (RT)
 
 linearize :: RT -> CC.Code -> Code

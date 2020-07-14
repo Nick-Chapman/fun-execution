@@ -7,7 +7,7 @@ import Control.Monad(ap,liftM)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 
-import Rep_Ast(Var(..),Exp(..))
+import Rep1_Ast(Var(..),Exp(..))
 import qualified Builtin
 import Parse (parse)
 import Builtin (CommandLineArgs(..))

@@ -3,7 +3,7 @@ module CheckClosed_Ast (UnboundError,checkClosed) where
 
 import Control.Monad(ap,liftM)
 
-import Rep_Ast(Var(..),Exp(..))
+import Rep1_Ast(Var(..),Exp(..))
 
 data UnboundError = UnboundError { unUnboundError :: String }
 instance Show UnboundError where show = unUnboundError

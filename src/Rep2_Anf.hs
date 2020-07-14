@@ -1,10 +1,10 @@
 
 -- | ANF (A-normal-form) expressions (atom/code)
 
-module Rep_Anf(Var(..),Atom(..),Code(..)) where
+module Rep2_Anf(Var(..),Atom(..),Code(..)) where
 
 import qualified Builtin
-import Rep_Ast(Var(..))
+import Rep1_Ast(Var(..))
 
 data Atom = AVar Var | ACon Builtin.BV
 

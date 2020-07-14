@@ -8,8 +8,8 @@ import qualified System.Console.ANSI as AN
 import Builtin(CommandLineArgs)
 import CheckClosed_Ast (checkClosed)
 import Eval_Ast (Value)
-import Rep_Ast (Exp,indented,pretty)
-import Trans_Normalize (normalize)
+import Rep1_Ast (Exp,indented,pretty)
+import Trans11_Normalize (normalize)
 import qualified Eval_Ast as Ast (evaluate)
 
 data Opt = NoOpt | NbE

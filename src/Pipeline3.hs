@@ -4,18 +4,18 @@ module Pipeline3 (CompilationError,Code,Value,Instrumentation,check,compile,exec
 import Control.Exception(try)
 import qualified System.Console.ANSI as AN
 
--- Pipeline: Ast -> Anf -> ClosureConverted
+-- Pipeline: Ast -> Anf -> Clo
 
 import Builtin (CommandLineArgs)
-import Rep_Ast (Exp)
-import Eval_ClosureConverted (Value,Instrumentation)
+import Rep1_Ast (Exp)
+import Eval_Clo (Value,Instrumentation)
 import CheckClosed_Ast (checkClosed)
 import RuntimeCallingConventions (RT)
-import Trans_Normalize (normalize)
-import Trans_Ast2Anf (flatten)
-import Trans_Anf2CC (convert)
-import qualified Eval_ClosureConverted as Eval (execute)
-import qualified Rep_ClosureConverted as Clo
+import Trans11_Normalize (normalize)
+import Trans12_Ast2Anf (flatten)
+import Trans23_Anf2Clo (convert)
+import qualified Eval_Clo as Eval (execute)
+import qualified Rep3_Clo as CC
 
 data Opt = NoOpt | NbE
 
@@ -25,7 +25,7 @@ instance Show CompilationError where show = unCompilationError
 check :: Exp -> Maybe CompilationError
 check exp = (CompilationError . show) <$> checkClosed exp
 
-data Code = Code { cc :: Clo.Code, rt :: RT }
+data Code = Code { cc :: CC.Code, rt :: RT }
 
 -- quick hackto allow switch NBE on/off -- TODO: tidy this up
 -- TODO: compile should redo the check

@@ -1,7 +1,7 @@
 
 -- | AST for lambda expressions
 
-module Rep_Ast (Var(..),Exp(..),Def(..),indented,pretty,mkELam,mkEApp,wrapDef) where
+module Rep1_Ast (Var(..),Exp(..),Def(..),indented,pretty,mkELam,mkEApp,wrapDef) where
 
 import Data.Set (Set,(\\))
 import qualified Data.Char as Char

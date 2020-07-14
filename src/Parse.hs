@@ -8,7 +8,7 @@ import qualified Data.Char as Char
 import qualified EarleyM as EM(parse,Parsing(..))
 
 import Builtin
-import Rep_Ast (Def(..),Exp(..),Var(..),mkELam,mkEApp)
+import Rep1_Ast (Def(..),Exp(..),Var(..),mkELam,mkEApp)
 
 newtype ParseError = ParseError { unParseError :: String }
 instance Show ParseError where show = unParseError

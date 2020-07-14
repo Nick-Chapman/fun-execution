@@ -4,8 +4,8 @@
 module Eval_Anf (Value,evaluate) where
 
 import Control.Monad.Identity (Identity(..))
-import Rep_Anf(Var(..),Code)
-import qualified Rep_Anf as Anf
+import Rep2_Anf(Var(..),Code)
+import qualified Rep2_Anf as Anf
 import qualified Builtin
 
 import Data.Map (Map,insert)

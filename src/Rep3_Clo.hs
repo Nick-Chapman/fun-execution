@@ -1,7 +1,7 @@
 
 -- | Closure Converted Code
 
-module Rep_ClosureConverted (Loc(..),Atom(..),Code(..),Value(..)) where
+module Rep3_Clo (Loc(..),Atom(..),Code(..),Value(..)) where
 
 import qualified Builtin
 

@@ -7,10 +7,10 @@ import qualified System.Console.ANSI as AN
 
 import Parse (parse)
 import Pipeline4 (check,quietCompile,Opt(..)) -- batch fixed to pipeline 4
-import Rep_Ast (Def(..),wrapDef)
+import Rep1_Ast (Def(..),wrapDef)
 import RuntimeCallingConventions (RT(..),ContFreeVars(..))
 import qualified Predefined (defs)
-import qualified Rep_Linear as Lin
+import qualified Rep4_Lin as Lin
 
 main :: IO ()
 main = do

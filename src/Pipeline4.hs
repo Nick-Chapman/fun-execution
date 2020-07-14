@@ -12,16 +12,16 @@ import Control.Exception(try)
 import qualified System.Console.ANSI as AN
 
 import Builtin (CommandLineArgs)
-import Rep_Ast (Exp)
-import Rep_Linear (Code)
-import Eval_Linear (Value,Instrumentation)
+import Rep1_Ast (Exp)
+import Rep4_Lin (Code)
+import Eval_Lin (Value,Instrumentation)
 import CheckClosed_Ast (checkClosed)
 import RuntimeCallingConventions (RT)
-import Trans_Normalize (normalize)
-import Trans_Ast2Anf (flatten)
-import Trans_Anf2CC (convert)
-import Trans_CC2Linear (linearize)
-import qualified Eval_Linear as Eval (execute)
+import Trans11_Normalize (normalize)
+import Trans12_Ast2Anf (flatten)
+import Trans23_Anf2Clo (convert)
+import Trans34_Clo2Lin (linearize)
+import qualified Eval_Lin as Eval (execute)
 
 data Opt = NoOpt | NbE
 

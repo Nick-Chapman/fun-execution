@@ -1,6 +1,6 @@
 
 -- Linearized code seqeunces
-module Rep_Linear where
+module Rep4_Lin where
 
 import RuntimeCallingConventions (RT,fvsOnStack)
 import qualified Builtin

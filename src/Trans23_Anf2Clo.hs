@@ -1,7 +1,7 @@
 
 -- | Convert Anf to CC (Closure converted) Code
 
-module Trans_Anf2CC (convert) where
+module Trans23_Anf2Clo (convert) where
 
 import Control.Monad(ap,liftM)
 import Data.Map (Map)
@@ -9,9 +9,9 @@ import Data.Set (Set,(\\))
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 
-import Rep_Anf (Var(..))
-import Rep_ClosureConverted (Loc(..),Atom(..),Code(..))
-import qualified Rep_Anf as Anf
+import Rep2_Anf (Var(..))
+import Rep3_Clo (Loc(..),Atom(..),Code(..))
+import qualified Rep2_Anf as Anf
 import RuntimeCallingConventions (RT,contFreeVars,ContFreeVars(..))
 
 convert :: RT -> Anf.Code -> Code

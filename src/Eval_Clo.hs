@@ -1,12 +1,12 @@
 
 -- | Machine to execute the closure-converted-code
 
-module Eval_ClosureConverted (execute,Value,Instrumentation) where
+module Eval_Clo (execute,Value,Instrumentation) where
 
 import Data.Map (Map)
 import qualified Data.Map.Strict as Map
 
-import Rep_ClosureConverted (Loc(..),Atom(..),Code(..),Value(..))
+import Rep3_Clo (Loc(..),Atom(..),Code(..),Value(..))
 import qualified Builtin
 import Builtin(CommandLineArgs)
 import RuntimeCallingConventions (RT(..),ContFreeVars(..))

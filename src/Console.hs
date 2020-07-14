@@ -9,7 +9,7 @@ import qualified System.Console.Haskeline as HL
 import qualified System.Console.Haskeline.History as HL
 import RuntimeCallingConventions (RT(..),ContFreeVars(..))
 
-import Rep_Ast (Def(..),wrapDef)
+import Rep1_Ast (Def(..),wrapDef)
 import Parse (parse)
 import Pipeline (check,compile,execute,Opt(..))
 import qualified Predefined (defs)
