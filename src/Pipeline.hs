@@ -8,20 +8,19 @@ module Pipeline (
   execute, Value, Instrumentation,
   ) where
 
-import Control.Exception(try)
-import qualified System.Console.ANSI as AN
-
 import Builtin (CommandLineArgs)
+import CheckClosed_Ast (checkClosed)
+import Control.Exception(try)
+import Eval_Lin (Value,Instrumentation)
 import Rep1_Ast (Exp)
 import Rep4_Lin (Code)
-import Eval_Lin (Value,Instrumentation)
-import CheckClosed_Ast (checkClosed)
 import RuntimeCallingConventions (RT)
 import Trans11_Normalize (normalize)
 import Trans12_Ast2Anf (flatten)
 import Trans23_Anf2Clo (convert)
 import Trans34_Clo2Lin (linearize)
 import qualified Eval_Lin as Eval (execute)
+import qualified System.Console.ANSI as AN
 
 data Opt = NoOpt | NbE
 

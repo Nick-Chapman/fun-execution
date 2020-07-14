@@ -1,8 +1,8 @@
 
 module Predefined(defs) where
 
-import Rep1_Ast(Var(..),Exp(..),Def(..),mkELam)
-import Builtin
+import Rep1_Ast (Var(..),Exp(..),Def(..),mkELam)
+import qualified Builtin
 
 defs :: [Def]
 defs = mkDefs

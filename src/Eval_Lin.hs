@@ -1,10 +1,10 @@
 
 module Eval_Lin (execute,Value,Instrumentation) where
 
+import Builtin (CommandLineArgs,BV(..),Prim1,Prim2,apply1,apply2)
 import Control.Monad (when)
 import Data.Maybe (fromJust)
 import Rep4_Lin (Code(..),CodeSequence(..),CodeRef(..),LitRef(..),Index(..),ValRef(..))
-import Builtin (CommandLineArgs,BV(..),Prim1,Prim2,apply1,apply2)
 import RuntimeCallingConventions (RT(..),ContFreeVars(..))
 
 trace :: Bool

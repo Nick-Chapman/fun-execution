@@ -3,11 +3,10 @@
 
 module Trans11_Normalize(normalize) where
 
-import Control.Monad(ap,liftM,(>=>))
+import Control.Monad (ap,liftM,(>=>))
 import Data.Map (Map)
-import qualified Data.Map.Strict as Map
-
 import Rep1_Ast as Ast (Var(..),Exp(..),mkELam,mkEApp)
+import qualified Data.Map.Strict as Map
 
 normalize :: Exp -> Exp
 normalize = runM . norm

@@ -1,14 +1,14 @@
 
 module Parse(parse) where
 
+import Prelude hiding (fail)
+
 import Control.Monad (mfilter)
 import EarleyM (Gram,Lang,fail,alts,fix,produce,declare,getToken,many,skipWhile)
-import Prelude hiding (exp, fail, lookup, pred)
-import qualified Data.Char as Char
-import qualified EarleyM as EM(parse,Parsing(..))
-
-import Builtin
 import Rep1_Ast (Def(..),Exp(..),Var(..),mkELam,mkEApp)
+import qualified Builtin
+import qualified Data.Char as Char
+import qualified EarleyM as EM (parse,Parsing(..))
 
 newtype ParseError = ParseError { unParseError :: String }
 instance Show ParseError where show = unParseError

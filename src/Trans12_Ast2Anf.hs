@@ -3,12 +3,11 @@
 
 module Trans12_Ast2Anf(flatten) where
 
-import Control.Monad(ap,liftM,forM)
+import Control.Monad (ap,liftM,forM)
 import Data.Map (Map)
+import Rep1_Ast as Ast (Exp(..),Var(..))
+import Rep2_Anf as Anf (Code(..),Atom(..))
 import qualified Data.Map.Strict as Map
-
-import Rep1_Ast as Ast(Exp(..),Var(..))
-import Rep2_Anf as Anf(Code(..),Atom(..))
 
 flatten :: Exp -> Code
 flatten exp = runM (codifyAs Nothing exp)

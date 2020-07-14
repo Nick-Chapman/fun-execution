@@ -1,16 +1,15 @@
 
 module Batch(main) where
 
-import System.Environment (getArgs)
-import qualified Data.List as List
-import qualified System.Console.ANSI as AN
-
 import Parse (parse)
 import Pipeline (check,quietCompile,Opt(..))
 import Rep1_Ast (Def(..),wrapDef)
 import RuntimeCallingConventions (RT(..),ContFreeVars(..))
+import System.Environment (getArgs)
+import qualified Data.List as List
 import qualified Predefined (defs)
 import qualified Rep4_Lin as Lin
+import qualified System.Console.ANSI as AN
 
 main :: IO ()
 main = do

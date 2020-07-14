@@ -4,10 +4,9 @@
 module Rep1_Ast (Var(..),Exp(..),Def(..),indented,pretty,mkELam,mkEApp,wrapDef) where
 
 import Data.Set (Set,(\\))
+import qualified Builtin
 import qualified Data.Char as Char
 import qualified Data.Set as Set
-
-import qualified Builtin
 
 newtype Var = Var { unVar :: String } deriving (Eq,Ord)
 instance Show Var where

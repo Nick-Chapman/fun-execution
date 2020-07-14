@@ -2,10 +2,10 @@
 module Trans34_Clo2Lin(linearize) where
 
 import Control.Monad (ap,liftM)
+import Rep4_Lin (Code(..),CodeSequence(..),ValRef(..),LitRef(..),CodeRef(..),Index(..))
+import RuntimeCallingConventions (RT)
 import qualified Builtin
 import qualified Rep3_Clo as CC
-import Rep4_Lin
-import RuntimeCallingConventions (RT)
 
 linearize :: RT -> CC.Code -> Code
 linearize rt cc = runM rt (walk cc >>= CutCode)

@@ -3,16 +3,15 @@
 
 module Trans23_Anf2Clo (convert) where
 
-import Control.Monad(ap,liftM)
+import Control.Monad (ap,liftM)
 import Data.Map (Map)
 import Data.Set (Set,(\\))
-import qualified Data.Map.Strict as Map
-import qualified Data.Set as Set
-
 import Rep2_Anf (Var(..))
 import Rep3_Clo (Loc(..),Atom(..),Code(..))
-import qualified Rep2_Anf as Anf
 import RuntimeCallingConventions (RT,contFreeVars,ContFreeVars(..))
+import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
+import qualified Rep2_Anf as Anf
 
 convert :: RT -> Anf.Code -> Code
 convert rt = runM [] . convertAnf rt

@@ -1,19 +1,18 @@
 
 module Console(main) where
 
+import Builtin (CommandLineArgs(..))
 import Control.Monad.Trans.Class (lift)
-import qualified Data.List as List
+import Parse (parse)
+import Pipeline (check,compile,execute,Opt(..))
+import Rep1_Ast (Def(..),wrapDef)
+import RuntimeCallingConventions (RT(..),ContFreeVars(..))
 import System.Environment (getArgs)
+import qualified Data.List as List
+import qualified Predefined (defs)
 import qualified System.Console.ANSI as AN
 import qualified System.Console.Haskeline as HL
 import qualified System.Console.Haskeline.History as HL
-import RuntimeCallingConventions (RT(..),ContFreeVars(..))
-
-import Rep1_Ast (Def(..),wrapDef)
-import Parse (parse)
-import Pipeline (check,compile,execute,Opt(..))
-import qualified Predefined (defs)
-import Builtin (CommandLineArgs(..))
 
 main :: IO ()
 main = do

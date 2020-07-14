@@ -3,8 +3,8 @@
 
 module Rep2_Anf(Var(..),Atom(..),Code(..)) where
 
-import qualified Builtin
 import Rep1_Ast(Var(..))
+import qualified Builtin
 
 data Atom = AVar Var | ACon Builtin.BV
 
