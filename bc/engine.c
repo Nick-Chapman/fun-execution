@@ -7,76 +7,36 @@
 
 //#define TRACE
 
-#define heap_size 100000000
-#define temps_size 100
-
 static char* pap_code[];
 static char** overapp_code;
-
-#define BaseContinuationSize (config_fvs_on_stack ? 3 : 2)
-
-static value heap[heap_size];
-static value temps1[temps_size];
-static value temps2[temps_size];
 
 #define noinline __attribute__ ((noinline))
 #define must_use __attribute__ ((warn_unused_result))
 
+// entry points. TODO: engine.h
 void run_engine_show_info(int argc, char* argv[]);
 value run_engine(int argc, char* argv[]);
 
-inline static char* get_code_ref(unsigned n);
-inline static value* heap_alloc(int n);
-inline static void set_code(char* c);
-inline static char next();
-inline static int digit();
-inline static value argument();
-inline static void push_stack(value v);
-inline static void push_arg(value v);
-inline static value* make_closure(int codeRef, int nFree);
-inline static char* enter_closure(value* clo);
-
-static must_use char* function_arity_check(int need);
-
-noinline static void init_machine();
-noinline static value* make_pap(int got, int need);
-noinline static void push_overApp(int got, int need);
-noinline static char* string_of_char(char arg);
-noinline static char* string_of_int(long arg);
-noinline static char* string_concat(char* s1, char* s2);
-noinline static char* get_pap_got_need(unsigned got, unsigned need);
-noinline static char* get_overapp_extra(unsigned extra);
-noinline static char* interpret_byte_code();
-
-static void (*push_continuation)(char* code,int nFree);
-
-static must_use char* (*return_to_continuation)(value v);
-
-static value* stack;
-static value* args;
-
-static value* hp;
-static value* sp;
-static value* ap;
-
 static char* the_code;
-static value* kont;
-static value* frame;
-static value* this_closure;
 
 static int my_argc;
 static char** my_argv;
 
+noinline static must_use char* init_machine();
+noinline static char* interpret_byte_code();
+noinline static value* top_of_stack();
+
+inline static void set_code(char* c);
+
 value run_engine(int argc, char* argv[]) {
   my_argc = argc;
   my_argv = argv;
-  init_machine();
-  char* code = get_code_ref(0); // can fail if there is no code
+  char* code = init_machine();
   set_code(code);
   while ((code = interpret_byte_code())) {
     set_code(code);
   }
-  return stack[0];
+  return top_of_stack();
 }
 
 void set_code(char* c) {
@@ -86,67 +46,87 @@ void set_code(char* c) {
   the_code = c;
 }
 
+inline static void ADD(value v1, value v2);
+inline static void SUB(value v1, value v2);
+inline static void LESS(value v1, value v2);
+inline static void PUSH_K(int codeRef, int nFree);
+inline static void PUSH_KF(unsigned i, value f);
+inline static void ARG(unsigned i, value v);
+
+inline static must_use char* RET(value v1);
+inline static must_use char* ENTER(value funValue, unsigned nArgs);
+inline static must_use char* JUMP_NZ(value cond,int dest);
+inline static must_use char* ARITY_CHECK(int need);
+
+inline static must_use value* MAKE_CLO(int codeRef, int nFree);
+inline static void SET_CLO_FREE(value* clo, unsigned i, value v);
+
+inline static char next();
+inline static int digit();
+inline static value argument();
+
+inline static void push_stack(value v);
+inline static char* get_code_ref(unsigned n);
+
+noinline static char* string_of_char(char arg);
+noinline static char* string_of_int(long arg);
+noinline static char* string_concat(char* s1, char* s2);
+
+
+//----------------------------------------------------------------------
+// byte-code intepreter
+
 char* interpret_byte_code() {
   char instr = 0;
   while ((instr = next())) {
     switch(instr) {
-    case 'h': { // halt
-      return 0;
-    }
+    case 'h': return 0; // halt
     case 'u': {
       int dest = digit();
       return get_code_ref(dest);
-      break;
     }
     case 'j': {
       value cond = argument();
       int dest = digit();
-      if (cond) {
-        return get_code_ref(dest);
-      }
+      { char* code = JUMP_NZ(cond, dest); if (code) return code; }
       break;
     }
     case 'r': {
       value v = argument();
-      char* code = return_to_continuation(v);
-      return code;
+      return RET(v);
     }
     case 't': {
       value funValue = argument();
-      int nArgs = digit();
-      for (int i = 1; i <= nArgs; i++) {
+      unsigned nArgs = digit();
+      for (unsigned i = 0; i < nArgs; i++) {
         value v = argument();
-        push_arg(v);
+        ARG(i,v);
       }
-      value* clo = (value*)funValue;
-      char* code = enter_closure(clo);
-      return code;
+      return ENTER(funValue,nArgs);
     }
     case 'c': {
       int codeRef = digit();
       int nFree = digit();
-      value* clo = make_closure(codeRef,nFree);
+      value* clo = MAKE_CLO(codeRef,nFree);
       for (int i = 0; i < nFree; i++) {
         value freeVal = argument();
-        clo[i+1] = freeVal;
+        SET_CLO_FREE(clo,i,freeVal);
       }
       break;
     }
     case 'p': {
       int codeRef = digit();
       int nFree = digit();
-      char* futurecode = get_code_ref(codeRef);
-      push_continuation(futurecode,nFree);
+      PUSH_K(codeRef,nFree);
       for (int i = 0; i < nFree; i++) {
         value freeVal = argument();
-        kont[i + BaseContinuationSize] = freeVal;
+        PUSH_KF(i,freeVal);
       }
       break;
     }
     case 'n': {
       int need = digit();
-      char* code = function_arity_check(need);
-      if (code) return code;
+      { char* code = ARITY_CHECK(need); if (code) return code; }
       break;
     }
     case '=': {
@@ -166,19 +146,15 @@ char* interpret_byte_code() {
       break;
     }
     case '-': {
-      long a = (long)argument();
-      long b = (long)argument();
-      long res = a - b;
-      //printf("minus('%ld',%ld) -> %ld\n",a,b,res);
-      push_stack((value)res);
+      value a = argument();
+      value b = argument();
+      SUB(a,b);
       break;
     }
     case '+': {
-      long a = (long)argument();
-      long b = (long)argument();
-      long res = a + b;
-      //printf("add('%ld',%ld) -> %ld\n",a,b,res);
-      push_stack((value)res);
+      value a = argument();
+      value b = argument();
+      ADD(a,b);
       break;
     }
     case 'M': {
@@ -209,7 +185,7 @@ char* interpret_byte_code() {
       push_stack((value)res);
       break;
     }
-    case 'Z': {
+    case 'B': {
       //printf("strlen\n");
       char* a = (char*)argument();
       long res = strlen(a);
@@ -270,6 +246,173 @@ char* interpret_byte_code() {
   printf("interpret_byte_code: run out of code!\n");
   exit(1);
 }
+
+
+//----------------------------------------------------------------------
+// machine components (find argument values)
+
+static value* stack;
+static value* args;
+static value* frame;
+
+value* top_of_stack() {
+  return stack[0];
+}
+
+//----------------------------------------------------------------------
+// interpreting the byte-code string
+
+#ifndef NDEBUG
+static unsigned steps = 0;
+#endif
+
+char next() {
+#ifndef NDEBUG
+  steps++;
+#endif
+  char byte = *the_code++;
+  //printf("[%d] '%c'\n",steps,byte);
+  return byte;
+}
+
+int digit() {
+  char c;
+  switch (c = next()) {
+  case '0'...'9':
+    return c - '0';
+  case 'x':
+    return 10 * digit() + digit();
+  default:
+    printf("digit: '%c' not expected\n", c);
+    exit(1);
+  }
+}
+
+value argument() {
+  char c;
+  switch (c = next()) {
+  /*case '0'...'9': {
+    int n = c - '0';
+    value res = stack[n];
+    return res;
+  }
+  case 'x': {
+    return stack[10 * digit() + digit()];
+  }*/
+  case '*': {
+    int n = digit();
+    value res = stack[n];
+    return res;
+  }
+  case '$': {
+    int n = digit();
+    value res = lits[n];
+    return res;
+  }
+  case '~': {
+    int n = digit();
+    value res = frame[n];
+    return res;
+  }
+  default:
+    printf("argument: '%c' not expected\n", c);
+    exit(1);
+  }
+}
+
+//----------------------------------------------------------------------
+// machine components
+
+static value* hp;
+static value* sp;
+
+static value* kont;
+static value* this_closure;
+
+//----------------------------------------------------------------------
+// byte code effects
+
+inline static value* heap_alloc(int n);
+inline static value* make_closure(int codeRef, int nFree);
+inline static char* enter_closure(value* clo, unsigned nArgs);
+inline static must_use char* function_arity_check(int need);
+
+static void (*push_continuation)(char* code,int nFree);
+static must_use char* (*return_to_continuation)(value v);
+
+
+#define BaseContinuationSize (config_fvs_on_stack ? 3 : 2)
+#define BaseClosureSize 1
+
+
+void ADD(value v1, value v2) {
+  long a = (long)v1;
+  long b = (long)v2;
+  long res = a + b;
+  //printf("ADD(%ld,%ld) -> %ld\n",a,b,res);
+  push_stack((value)res);
+}
+
+void SUB(value v1, value v2) {
+  long a = (long)v1;
+  long b = (long)v2;
+  long res = a - b;
+  //printf("SUB(%ld,%ld) -> %ld\n",a,b,res);
+  push_stack((value)res);
+}
+
+void LESS(value v1, value v2) {
+  long a = (long)v1;
+  long b = (long)v2;
+  long res = a < b;
+  //printf("LESS(%ld,%ld) -> %ld\n",a,b,res);
+  push_stack((value)res);
+}
+
+char* RET(value v1) {
+  return return_to_continuation(v1);
+}
+
+void PUSH_K(int codeRef, int nFree) {
+  char* futurecode = get_code_ref(codeRef);
+  push_continuation(futurecode,nFree);
+}
+
+void PUSH_KF(unsigned i, value f) {
+  kont[i + BaseContinuationSize] = f;
+}
+
+void ARG(unsigned i, value v) {
+  args[i] = v;
+}
+
+char* ENTER(value funValue, unsigned nArgs) {
+  value* clo = (value*)funValue;
+  char* code = enter_closure(clo,nArgs);
+  return code;
+}
+
+char* JUMP_NZ(value cond,int dest) {
+  if (cond) {
+    return get_code_ref(dest);
+  }
+  return 0;
+}
+
+char* ARITY_CHECK(int need) {
+  return function_arity_check(need);
+}
+
+value* MAKE_CLO(int codeRef, int nFree) {
+  value* clo = make_closure(codeRef,nFree);
+  return clo;
+}
+
+void SET_CLO_FREE(value* clo, unsigned i, value v) {
+  clo[i+BaseClosureSize] = v;
+}
+
+//----------------------------------------------------------------------
 
 #ifndef NDEBUG
 static unsigned max_code_ref = 0;
@@ -383,7 +526,15 @@ static char* overapp_code_FIF[] =
    0,
   };
 
-void init_machine() {
+
+#define heap_size 100000000
+#define temps_size 100
+
+static value heap[heap_size];
+static value temps1[temps_size];
+static value temps2[temps_size];
+
+char* init_machine() {
 
   overapp_code =
     config_fvs_on_stack
@@ -415,8 +566,18 @@ void init_machine() {
   args = &temps2[0];
   hp = &heap[0];
   sp = stack;
-  ap = args;
+
+  char* code = get_code_ref(0); // can fail if there is no code
+  return code;
+
 }
+
+
+noinline static value* make_pap(int got, int need);
+noinline static void push_overApp(int got, int need);
+noinline static char* get_pap_got_need(unsigned got, unsigned need);
+noinline static char* get_overapp_extra(unsigned extra);
+
 
 value* make_closure(int codeRef, int nFree) {
   value* clo = heap_alloc(nFree+1);
@@ -425,13 +586,15 @@ value* make_closure(int codeRef, int nFree) {
   return clo;
 }
 
-char* enter_closure(value* clo) {
+char* enter_closure(value* clo, unsigned nArgs) {
   this_closure = clo;
   char* code = clo[0];
   frame = &clo[1];
+  //TODO: would it be better to copy args onto stack instead of switching pointers?
+  //This would allow stack & args to be static arrays instead of pointers.
   value* tmp;
   tmp = stack; stack = args; args = tmp;
-  sp = ap; ap = args;
+  sp = stack + nArgs;
   return code;
 }
 
@@ -488,10 +651,6 @@ void push_stack(value v) {
   *sp++ = v;
 }
 
-void push_arg(value v) {
-  *ap++ = v;
-}
-
 char* get_code_ref(unsigned n) {
 #ifndef NDEBUG
   check_code_ref(n);
@@ -540,64 +699,6 @@ char* string_concat(char* s1, char* s2) {
   char* res = (char*)heap_alloc(n);
   sprintf(res,"%s%s",s1,s2);
   return res;
-}
-
-#ifndef NDEBUG
-static unsigned steps = 0;
-#endif
-
-char next() {
-#ifndef NDEBUG
-  steps++;
-#endif
-  char byte = *the_code++;
-  //printf("[%d] '%c'\n",steps,byte);
-  return byte;
-}
-
-int digit() {
-  char c;
-  switch (c = next()) {
-  case '0'...'9':
-    return c - '0';
-  case 'x':
-    return 10 * digit() + digit();
-  default:
-    printf("digit: '%c' not expected\n", c);
-    exit(1);
-  }
-}
-
-value argument() {
-  char c;
-  switch (c = next()) {
-  /*case '0'...'9': {
-    int n = c - '0';
-    value res = stack[n];
-    return res;
-  }
-  case 'x': {
-    return stack[10 * digit() + digit()];
-  }*/
-  case '*': {
-    int n = digit();
-    value res = stack[n];
-    return res;
-  }
-  case '$': {
-    int n = digit();
-    value res = lits[n];
-    return res;
-  }
-  case '~': {
-    int n = digit();
-    value res = frame[n];
-    return res;
-  }
-  default:
-    printf("argument: '%c' not expected\n", c);
-    exit(1);
-  }
 }
 
 static char* pap_code[] =
