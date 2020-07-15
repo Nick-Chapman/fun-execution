@@ -24,9 +24,13 @@ static char** my_argv;
 
 noinline static must_use char* init_machine();
 noinline static char* interpret_byte_code();
-noinline static value* top_of_stack();
 
 inline static void set_code(char* c);
+
+#define stack_size 100
+static value stack[stack_size];
+
+static value* frame;
 
 value run_engine(int argc, char* argv[]) {
   my_argc = argc;
@@ -36,7 +40,7 @@ value run_engine(int argc, char* argv[]) {
   while ((code = interpret_byte_code())) {
     set_code(code);
   }
-  return top_of_stack();
+  return stack[0];
 }
 
 void set_code(char* c) {
@@ -48,7 +52,6 @@ void set_code(char* c) {
 
 inline static void PUSH_K(int codeRef, int nFree);
 inline static void PUSH_KF(unsigned i, value f);
-inline static void ARG(unsigned i, value v);
 
 inline static must_use char* RET(value v1);
 inline static must_use char* ENTER(value funValue, unsigned nArgs);
@@ -109,9 +112,13 @@ char* interpret_byte_code() {
     case 't': {
       value funValue = argument();
       unsigned nArgs = digit();
+      value the_args[nArgs];
       for (unsigned i = 0; i < nArgs; i++) {
         value v = argument();
-        ARG(i,v);
+        the_args[i] = v;
+      }
+      for (unsigned i = 0; i < nArgs; i++) {
+        stack[i] = the_args[i];
       }
       return ENTER(funValue,nArgs);
     }
@@ -168,21 +175,6 @@ char* interpret_byte_code() {
   }
   printf("interpret_byte_code: run out of code!\n");
   exit(1);
-}
-
-
-//----------------------------------------------------------------------
-// machine components (find argument values)
-
-#define temps_size 100
-
-static value stack[temps_size];
-static value args[temps_size];
-
-static value* frame;
-
-value* top_of_stack() {
-  return stack[0];
 }
 
 //----------------------------------------------------------------------
@@ -260,7 +252,6 @@ static value* this_closure;
 
 inline static value* heap_alloc(int n);
 inline static value* make_closure(int codeRef, int nFree);
-inline static char* enter_closure(value* clo, unsigned nArgs);
 inline static must_use char* function_arity_check(int need);
 
 static void (*push_continuation)(char* code,int nFree);
@@ -390,13 +381,12 @@ void PUSH_KF(unsigned i, value f) {
   kont[i + BaseContinuationSize] = f;
 }
 
-void ARG(unsigned i, value v) {
-  args[i] = v;
-}
-
 char* ENTER(value funValue, unsigned nArgs) {
   value* clo = (value*)funValue;
-  char* code = enter_closure(clo,nArgs);
+  this_closure = clo;
+  char* code = clo[0];
+  frame = &clo[1];
+  sp = stack + nArgs;
   return code;
 }
 
@@ -587,17 +577,6 @@ value* make_closure(int codeRef, int nFree) {
   push_stack(clo);
   clo[0] = get_code_ref(codeRef);
   return clo;
-}
-
-char* enter_closure(value* clo, unsigned nArgs) {
-  this_closure = clo;
-  char* code = clo[0];
-  frame = &clo[1];
-  for (unsigned i = 0; i < nArgs; i++) {
-    stack[i] = args[i];
-  }
-  sp = stack + nArgs;
-  return code;
 }
 
 char* function_arity_check(int need) {
