@@ -101,7 +101,7 @@ showPrim2 = \case
   Builtin.Mul -> "M"
   Builtin.ModInt -> "%"
   Builtin.EqNumOrChar -> "="
-  Builtin.EqString -> "~"
   Builtin.LessNumOrChar -> "<"
+  Builtin.EqString -> "~"
   Builtin.StringAppend -> "^"
   Builtin.StrIndex -> "I"

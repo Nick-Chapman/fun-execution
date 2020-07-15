@@ -58,24 +58,24 @@ inline static must_use char* ARITY_CHECK(int need);
 inline static must_use value* MAKE_CLO(int codeRef, int nFree);
 inline static void SET_CLO_FREE(value* clo, unsigned i, value v);
 
-//TODO: bin/unary ops. make names match Haskell compiler builtins
+//unary
+inline static void ShowChar(value v1);
+inline static void ShowInt(value v1);
+inline static void ReadInt(value v1);
+inline static void Argv(value v1);
+inline static void StrSize(value v1);
+inline static void Error(value v1);
 
-inline static void ADD(value v1, value v2);
-inline static void SUB(value v1, value v2);
-inline static void LESS(value v1, value v2);
-inline static void EQUAL(value v1, value v2);
-inline static void MUL(value v1, value v2);
-inline static void MOD(value v1, value v2);
-inline static void APPEND(value v1, value v2);
-inline static void STRCMP(value v1, value v2);
-inline static void INDEX(value v1, value v2);
-
-inline static void SOFI(value v1);
-inline static void SOFC(value v1);
-inline static void STRLEN(value v1);
-inline static void IOFS(value v1);
-inline static void ARGV(value v1);
-inline static void ERROR(value v1);
+//binary
+inline static void Add(value v1, value v2);
+inline static void Sub(value v1, value v2);
+inline static void Mul(value v1, value v2);
+inline static void ModInt(value v1, value v2);
+inline static void EqNumOrChar(value v1, value v2);
+inline static void LessNumOrChar(value v1, value v2);
+inline static void EqString(value v1, value v2);
+inline static void StringAppend(value v1, value v2);
+inline static void StrIndex(value v1, value v2);
 
 inline static char next();
 inline static int digit();
@@ -141,24 +141,24 @@ char* interpret_byte_code() {
       break;
     }
 
-    //binary ops
-    case '+': { value a = argument(); value b = argument(); ADD(a,b); break; }
-    case '-': { value a = argument(); value b = argument(); SUB(a,b); break; }
-    case '<': { value a = argument(); value b = argument(); LESS(a,b); break; }
-    case '=': { value a = argument(); value b = argument(); EQUAL(a,b); break; }
-    case 'M': { value a = argument(); value b = argument(); MUL(a,b); break; }
-    case '%': { value a = argument(); value b = argument(); MOD(a,b); break; }
-    case '^': { value a = argument(); value b = argument(); APPEND(a,b); break; }
-    case '~': { value a = argument(); value b = argument(); STRCMP(a,b); break; }
-    case 'I': { value a = argument(); value b = argument(); INDEX(a,b); break; }
+    //unary
+    case 'C': { value a = argument(); ShowChar(a); break; }
+    case 'S': { value a = argument(); ShowInt(a); break; }
+    case 'R': { value a = argument(); ReadInt(a); break; }
+    case 'A': { value a = argument(); Argv(a); break; }
+    case 'B': { value a = argument(); StrSize(a); break; }
+    case '!': { value a = argument(); Error(a); break; }
 
-    //unary ops
-    case 'S': { value a = argument(); SOFI(a); break; }
-    case 'C': { value a = argument(); SOFC(a); break; }
-    case 'B': { value a = argument(); STRLEN(a); break; }
-    case 'R': { value a = argument(); IOFS(a); break; }
-    case 'A': { value a = argument(); ARGV(a); break; }
-    case '!': { value a = argument(); ERROR(a); break; }
+    //binary
+    case '+': { value a = argument(); value b = argument(); Add(a,b); break; }
+    case '-': { value a = argument(); value b = argument(); Sub(a,b); break; }
+    case 'M': { value a = argument(); value b = argument(); Mul(a,b); break; }
+    case '%': { value a = argument(); value b = argument(); ModInt(a,b); break; }
+    case '=': { value a = argument(); value b = argument(); EqNumOrChar(a,b); break; }
+    case '<': { value a = argument(); value b = argument(); LessNumOrChar(a,b); break; }
+    case '~': { value a = argument(); value b = argument(); EqString(a,b); break; }
+    case '^': { value a = argument(); value b = argument(); StringAppend(a,b); break; }
+    case 'I': { value a = argument(); value b = argument(); StrIndex(a,b); break; }
 
     default:
       printf("unknown byte: '%c'\n",instr);
@@ -269,106 +269,108 @@ noinline static char* string_of_char(char arg);
 noinline static char* string_of_int(long arg);
 noinline static char* string_concat(char* s1, char* s2);
 
+//unary
 
-
-void ADD(value v1, value v2) {
-  long a = (long)v1;
-  long b = (long)v2;
-  long res = a + b;
-  push_stack((value)res);
-}
-
-void SUB(value v1, value v2) {
-  long a = (long)v1;
-  long b = (long)v2;
-  long res = a - b;
-  push_stack((value)res);
-}
-
-void LESS(value v1, value v2) {
-  long a = (long)v1;
-  long b = (long)v2;
-  long res = a < b;
-  push_stack((value)res);
-}
-
-void EQUAL(value v1, value v2) {
-  long a = (long)v1;
-  long b = (long)v2;
-  long res = a == b;
-  push_stack((value)res);
-}
-
-void MUL(value v1, value v2) {
-  long a = (long)v1;
-  long b = (long)v2;
-  long res = a * b;
-  push_stack((value)res);
-}
-
-void MOD(value v1, value v2) {
-  long a = (long)v1;
-  long b = (long)v2;
-  long res = a % b;
-  push_stack((value)res);
-}
-
-void APPEND(value v1, value v2) {
-  char* s1 = (char*)v1;
-  char* s2 = (char*)v2;
-  char* res = string_concat(s1,s2);
-  push_stack((value)res);
-}
-
-void STRCMP(value v1, value v2) {
-  char* s1 = (char*)v1;
-  char* s2 = (char*)v2;
-  long res = strcmp(s1,s2);
-  push_stack((value)(res?0L:1L));
-}
-
-void INDEX(value v1, value v2) {
-  char* s1 = (char*)v1;
-  long n = (long)v2;
-  char c = s1[n];
-  push_stack((value)(long)c);
-}
-
-void SOFI(value v1) {
-  long a = (long)v1;
-  char* res = string_of_int(a);
-  push_stack((value)res);
-}
-
-void SOFC(value v1) {
+void ShowChar(value v1) {
   char c = (char)(long)v1;
   char* res = string_of_char(c);
   push_stack((value)res);
 }
 
-void STRLEN(value v1) {
-  char* a = (char*)v1;
-  long res = strlen(a);
+void ShowInt(value v1) {
+  long a = (long)v1;
+  char* res = string_of_int(a);
   push_stack((value)res);
 }
 
-void IOFS(value v1) {
+void ReadInt(value v1) {
   char* s = (char*)v1;
   long n = 0;
   sscanf(s,"%ld",&n);
   push_stack((value)n);
 }
 
-void ARGV(value v1) {
+void Argv(value v1) {
   long n = (long)v1;
   char* res = n<my_argc ? my_argv[n] : "";
   push_stack((value)res);
 }
 
-void ERROR(value v1) {
+void StrSize(value v1) {
+  char* a = (char*)v1;
+  long res = strlen(a);
+  push_stack((value)res);
+}
+
+void Error(value v1) {
   char* a = (char*)v1;
   printf("error: %s\n",a);
   exit(1);
+}
+
+//binary
+
+void Add(value v1, value v2) {
+  long a = (long)v1;
+  long b = (long)v2;
+  long res = a + b;
+  push_stack((value)res);
+}
+
+void Sub(value v1, value v2) {
+  long a = (long)v1;
+  long b = (long)v2;
+  long res = a - b;
+  push_stack((value)res);
+}
+
+void Mul(value v1, value v2) {
+  long a = (long)v1;
+  long b = (long)v2;
+  long res = a * b;
+  push_stack((value)res);
+}
+
+void ModInt(value v1, value v2) {
+  long a = (long)v1;
+  long b = (long)v2;
+  long res = a % b;
+  push_stack((value)res);
+}
+
+void EqNumOrChar(value v1, value v2) {
+  long a = (long)v1;
+  long b = (long)v2;
+  long res = a == b;
+  push_stack((value)res);
+}
+
+void LessNumOrChar(value v1, value v2) {
+  long a = (long)v1;
+  long b = (long)v2;
+  long res = a < b;
+  push_stack((value)res);
+}
+
+void EqString(value v1, value v2) {
+  char* s1 = (char*)v1;
+  char* s2 = (char*)v2;
+  long res = strcmp(s1,s2);
+  push_stack((value)(res?0L:1L));
+}
+
+void StringAppend(value v1, value v2) {
+  char* s1 = (char*)v1;
+  char* s2 = (char*)v2;
+  char* res = string_concat(s1,s2);
+  push_stack((value)res);
+}
+
+void StrIndex(value v1, value v2) {
+  char* s1 = (char*)v1;
+  long n = (long)v2;
+  char c = s1[n];
+  push_stack((value)(long)c);
 }
 
 char* RET(value v1) {
