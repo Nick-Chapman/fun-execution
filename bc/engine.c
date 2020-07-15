@@ -141,24 +141,25 @@ char* interpret_byte_code() {
       break;
     }
 
-    //unary
-    case 'C': { value a = argument(); ShowChar(a); break; }
-    case 'S': { value a = argument(); ShowInt(a); break; }
-    case 'R': { value a = argument(); ReadInt(a); break; }
-    case 'A': { value a = argument(); Argv(a); break; }
-    case 'B': { value a = argument(); StrSize(a); break; }
-    case '!': { value a = argument(); Error(a); break; }
+#define unary(X,FN) case X: { value a = argument(); FN(a); break; }
+#define binary(X,FN) case X: { value a = argument(); value b = argument(); FN(a,b); break; }
 
-    //binary
-    case '+': { value a = argument(); value b = argument(); Add(a,b); break; }
-    case '-': { value a = argument(); value b = argument(); Sub(a,b); break; }
-    case 'M': { value a = argument(); value b = argument(); Mul(a,b); break; }
-    case '%': { value a = argument(); value b = argument(); ModInt(a,b); break; }
-    case '=': { value a = argument(); value b = argument(); EqNumOrChar(a,b); break; }
-    case '<': { value a = argument(); value b = argument(); LessNumOrChar(a,b); break; }
-    case '~': { value a = argument(); value b = argument(); EqString(a,b); break; }
-    case '^': { value a = argument(); value b = argument(); StringAppend(a,b); break; }
-    case 'I': { value a = argument(); value b = argument(); StrIndex(a,b); break; }
+        unary('C',ShowChar)
+        unary('S',ShowInt)
+        unary('R',ReadInt)
+        unary('A',Argv)
+        unary('B',StrSize)
+        unary('!',Error)
+
+        binary('+',Add)
+        binary('-',Sub)
+        binary('M',Mul)
+        binary('%',ModInt)
+        binary('=',EqNumOrChar)
+        binary('<',LessNumOrChar)
+        binary('~',EqString)
+        binary('^',StringAppend)
+        binary('I',StrIndex)
 
     default:
       printf("unknown byte: '%c'\n",instr);
