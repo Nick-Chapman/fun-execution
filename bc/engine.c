@@ -133,7 +133,6 @@ char* interpret_byte_code() {
       long a = (long)argument();
       long b = (long)argument();
       long res = a == b;
-      //printf("equal( %ld/'%c', %ld/'%c' ) --> %ld\n",a,(char)a,b,(char)b,res);
       push_stack((value)res);
       break;
     }
@@ -141,7 +140,6 @@ char* interpret_byte_code() {
       long a = (long)argument();
       long b = (long)argument();
       long res = a < b;
-      //printf("less-than( %ld/'%c', %ld/'%c' ) --> %ld\n",a,(char)a,b,(char)b,res);
       push_stack((value)res);
       break;
     }
@@ -172,28 +170,24 @@ char* interpret_byte_code() {
       break;
     }
     case 'S': {
-      //printf("string_of_int\n");
       long a = (long)argument();
       char* res = string_of_int(a);
       push_stack((value)res);
       break;
     }
     case 'C': {
-      //printf("string_of_char\n");
       char c = (char)(long)argument();
       char* res = string_of_char(c);
       push_stack((value)res);
       break;
     }
     case 'B': {
-      //printf("strlen\n");
       char* a = (char*)argument();
       long res = strlen(a);
       push_stack((value)res);
       break;
     }
     case 'R': {
-      //printf("int-of-string\n");
       char* s = (char*)argument();
       long n = 0;
       sscanf(s,"%ld",&n);
@@ -201,14 +195,12 @@ char* interpret_byte_code() {
       break;
     }
     case 'A': {
-      //printf("argv\n");
       long n = (long)argument();
       char* res = n<my_argc ? my_argv[n] : "";
       push_stack((value)res);
       break;
     }
     case '^': {
-      //printf("string_concat\n");
       char* s1 = (char*)argument();
       char* s2 = (char*)argument();
       char* res = string_concat(s1,s2);
@@ -216,11 +208,9 @@ char* interpret_byte_code() {
       break;
       }
     case '~': {
-      //printf("strcmp\n");
       char* s1 = (char*)argument();
       char* s2 = (char*)argument();
       long res = strcmp(s1,s2);
-      //printf("~: '%s' ~ '%s' -> '%ld'\n",s1,s2,res);
       push_stack((value)(res?0L:1L));
       break;
       }
@@ -228,7 +218,6 @@ char* interpret_byte_code() {
       char* s1 = (char*)argument();
       long n = (long)argument();
       char c = s1[n];
-      //printf("index('%s',%ld) -> %c\n",s1,n,c);
       push_stack((value)(long)c);
       break;
       }
@@ -349,7 +338,6 @@ void ADD(value v1, value v2) {
   long a = (long)v1;
   long b = (long)v2;
   long res = a + b;
-  //printf("ADD(%ld,%ld) -> %ld\n",a,b,res);
   push_stack((value)res);
 }
 
@@ -357,7 +345,6 @@ void SUB(value v1, value v2) {
   long a = (long)v1;
   long b = (long)v2;
   long res = a - b;
-  //printf("SUB(%ld,%ld) -> %ld\n",a,b,res);
   push_stack((value)res);
 }
 
@@ -365,7 +352,6 @@ void LESS(value v1, value v2) {
   long a = (long)v1;
   long b = (long)v2;
   long res = a < b;
-  //printf("LESS(%ld,%ld) -> %ld\n",a,b,res);
   push_stack((value)res);
 }
 
