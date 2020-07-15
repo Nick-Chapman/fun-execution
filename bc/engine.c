@@ -174,8 +174,11 @@ char* interpret_byte_code() {
 //----------------------------------------------------------------------
 // machine components (find argument values)
 
-static value* stack;
-static value* args;
+#define temps_size 100
+
+static value stack[temps_size];
+static value args[temps_size];
+
 static value* frame;
 
 value* top_of_stack() {
@@ -533,11 +536,8 @@ static char* overapp_code_FIF[] =
 
 
 #define heap_size 100000000
-#define temps_size 100
 
 static value heap[heap_size];
-static value temps1[temps_size];
-static value temps2[temps_size];
 
 char* init_machine() {
 
@@ -567,8 +567,6 @@ char* init_machine() {
     ? &return_to_continuation_FOS
     : &return_to_continuation_FIF;
 
-  stack = &temps1[0];
-  args = &temps2[0];
   hp = &heap[0];
   sp = stack;
 
@@ -595,10 +593,9 @@ char* enter_closure(value* clo, unsigned nArgs) {
   this_closure = clo;
   char* code = clo[0];
   frame = &clo[1];
-  //TODO: would it be better to copy args onto stack instead of switching pointers?
-  //This would allow stack & args to be static arrays instead of pointers.
-  value* tmp;
-  tmp = stack; stack = args; args = tmp;
+  for (unsigned i = 0; i < nArgs; i++) {
+    stack[i] = args[i];
+  }
   sp = stack + nArgs;
   return code;
 }
