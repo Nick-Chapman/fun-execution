@@ -46,9 +46,6 @@ void set_code(char* c) {
   the_code = c;
 }
 
-inline static void ADD(value v1, value v2);
-inline static void SUB(value v1, value v2);
-inline static void LESS(value v1, value v2);
 inline static void PUSH_K(int codeRef, int nFree);
 inline static void PUSH_KF(unsigned i, value f);
 inline static void ARG(unsigned i, value v);
@@ -61,17 +58,31 @@ inline static must_use char* ARITY_CHECK(int need);
 inline static must_use value* MAKE_CLO(int codeRef, int nFree);
 inline static void SET_CLO_FREE(value* clo, unsigned i, value v);
 
+//TODO: bin/unary ops. make names match Haskell compiler builtins
+
+inline static void ADD(value v1, value v2);
+inline static void SUB(value v1, value v2);
+inline static void LESS(value v1, value v2);
+inline static void EQUAL(value v1, value v2);
+inline static void MUL(value v1, value v2);
+inline static void MOD(value v1, value v2);
+inline static void APPEND(value v1, value v2);
+inline static void STRCMP(value v1, value v2);
+inline static void INDEX(value v1, value v2);
+
+inline static void SOFI(value v1);
+inline static void SOFC(value v1);
+inline static void STRLEN(value v1);
+inline static void IOFS(value v1);
+inline static void ARGV(value v1);
+inline static void ERROR(value v1);
+
 inline static char next();
 inline static int digit();
 inline static value argument();
 
 inline static void push_stack(value v);
 inline static char* get_code_ref(unsigned n);
-
-noinline static char* string_of_char(char arg);
-noinline static char* string_of_int(long arg);
-noinline static char* string_concat(char* s1, char* s2);
-
 
 //----------------------------------------------------------------------
 // byte-code intepreter
@@ -129,104 +140,26 @@ char* interpret_byte_code() {
       { char* code = ARITY_CHECK(need); if (code) return code; }
       break;
     }
-    case '=': {
-      long a = (long)argument();
-      long b = (long)argument();
-      long res = a == b;
-      push_stack((value)res);
-      break;
-    }
-    case '<': {
-      long a = (long)argument();
-      long b = (long)argument();
-      long res = a < b;
-      push_stack((value)res);
-      break;
-    }
-    case '-': {
-      value a = argument();
-      value b = argument();
-      SUB(a,b);
-      break;
-    }
-    case '+': {
-      value a = argument();
-      value b = argument();
-      ADD(a,b);
-      break;
-    }
-    case 'M': {
-      long a = (long)argument();
-      long b = (long)argument();
-      long res = a * b;
-      push_stack((value)res);
-      break;
-    }
-    case '%': {
-      long a = (long)argument();
-      long b = (long)argument();
-      long res = a % b;
-      push_stack((value)res);
-      break;
-    }
-    case 'S': {
-      long a = (long)argument();
-      char* res = string_of_int(a);
-      push_stack((value)res);
-      break;
-    }
-    case 'C': {
-      char c = (char)(long)argument();
-      char* res = string_of_char(c);
-      push_stack((value)res);
-      break;
-    }
-    case 'B': {
-      char* a = (char*)argument();
-      long res = strlen(a);
-      push_stack((value)res);
-      break;
-    }
-    case 'R': {
-      char* s = (char*)argument();
-      long n = 0;
-      sscanf(s,"%ld",&n);
-      push_stack((value)n);
-      break;
-    }
-    case 'A': {
-      long n = (long)argument();
-      char* res = n<my_argc ? my_argv[n] : "";
-      push_stack((value)res);
-      break;
-    }
-    case '^': {
-      char* s1 = (char*)argument();
-      char* s2 = (char*)argument();
-      char* res = string_concat(s1,s2);
-      push_stack((value)res);
-      break;
-      }
-    case '~': {
-      char* s1 = (char*)argument();
-      char* s2 = (char*)argument();
-      long res = strcmp(s1,s2);
-      push_stack((value)(res?0L:1L));
-      break;
-      }
-    case 'I': {
-      char* s1 = (char*)argument();
-      long n = (long)argument();
-      char c = s1[n];
-      push_stack((value)(long)c);
-      break;
-      }
-    case '!': {
-      char* a = (char*)argument();
-      printf("error: %s\n",a);
-      exit(1);
-      break;
-    }
+
+    //binary ops
+    case '+': { value a = argument(); value b = argument(); ADD(a,b); break; }
+    case '-': { value a = argument(); value b = argument(); SUB(a,b); break; }
+    case '<': { value a = argument(); value b = argument(); LESS(a,b); break; }
+    case '=': { value a = argument(); value b = argument(); EQUAL(a,b); break; }
+    case 'M': { value a = argument(); value b = argument(); MUL(a,b); break; }
+    case '%': { value a = argument(); value b = argument(); MOD(a,b); break; }
+    case '^': { value a = argument(); value b = argument(); APPEND(a,b); break; }
+    case '~': { value a = argument(); value b = argument(); STRCMP(a,b); break; }
+    case 'I': { value a = argument(); value b = argument(); INDEX(a,b); break; }
+
+    //unary ops
+    case 'S': { value a = argument(); SOFI(a); break; }
+    case 'C': { value a = argument(); SOFC(a); break; }
+    case 'B': { value a = argument(); STRLEN(a); break; }
+    case 'R': { value a = argument(); IOFS(a); break; }
+    case 'A': { value a = argument(); ARGV(a); break; }
+    case '!': { value a = argument(); ERROR(a); break; }
+
     default:
       printf("unknown byte: '%c'\n",instr);
       exit(1);
@@ -329,9 +262,13 @@ inline static must_use char* function_arity_check(int need);
 static void (*push_continuation)(char* code,int nFree);
 static must_use char* (*return_to_continuation)(value v);
 
-
 #define BaseContinuationSize (config_fvs_on_stack ? 3 : 2)
 #define BaseClosureSize 1
+
+noinline static char* string_of_char(char arg);
+noinline static char* string_of_int(long arg);
+noinline static char* string_concat(char* s1, char* s2);
+
 
 
 void ADD(value v1, value v2) {
@@ -353,6 +290,85 @@ void LESS(value v1, value v2) {
   long b = (long)v2;
   long res = a < b;
   push_stack((value)res);
+}
+
+void EQUAL(value v1, value v2) {
+  long a = (long)v1;
+  long b = (long)v2;
+  long res = a == b;
+  push_stack((value)res);
+}
+
+void MUL(value v1, value v2) {
+  long a = (long)v1;
+  long b = (long)v2;
+  long res = a * b;
+  push_stack((value)res);
+}
+
+void MOD(value v1, value v2) {
+  long a = (long)v1;
+  long b = (long)v2;
+  long res = a % b;
+  push_stack((value)res);
+}
+
+void APPEND(value v1, value v2) {
+  char* s1 = (char*)v1;
+  char* s2 = (char*)v2;
+  char* res = string_concat(s1,s2);
+  push_stack((value)res);
+}
+
+void STRCMP(value v1, value v2) {
+  char* s1 = (char*)v1;
+  char* s2 = (char*)v2;
+  long res = strcmp(s1,s2);
+  push_stack((value)(res?0L:1L));
+}
+
+void INDEX(value v1, value v2) {
+  char* s1 = (char*)v1;
+  long n = (long)v2;
+  char c = s1[n];
+  push_stack((value)(long)c);
+}
+
+void SOFI(value v1) {
+  long a = (long)v1;
+  char* res = string_of_int(a);
+  push_stack((value)res);
+}
+
+void SOFC(value v1) {
+  char c = (char)(long)v1;
+  char* res = string_of_char(c);
+  push_stack((value)res);
+}
+
+void STRLEN(value v1) {
+  char* a = (char*)v1;
+  long res = strlen(a);
+  push_stack((value)res);
+}
+
+void IOFS(value v1) {
+  char* s = (char*)v1;
+  long n = 0;
+  sscanf(s,"%ld",&n);
+  push_stack((value)n);
+}
+
+void ARGV(value v1) {
+  long n = (long)v1;
+  char* res = n<my_argc ? my_argv[n] : "";
+  push_stack((value)res);
+}
+
+void ERROR(value v1) {
+  char* a = (char*)v1;
+  printf("error: %s\n",a);
+  exit(1);
 }
 
 char* RET(value v1) {
