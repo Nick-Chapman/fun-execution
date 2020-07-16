@@ -216,8 +216,9 @@ func_p X() {
 }
 
 func_p X_fos() {
-  char* code = "+*0*1+*2$1r*3"; // makes perf slow!
-  return continue_bc(code);
+  Add(stack[0],stack[1]);
+  Add(stack[2],lits[1]);
+  return RET(stack[3]);
 }
 
 func_p Y() {
@@ -232,8 +233,14 @@ func_p Y() {
 }
 
 func_p Y_fos() {
-  char* code = "-*0$0p21*2t*11*3"; // makes perf slow!
-  return continue_bc(code);
+  Sub(stack[0],lits[0]);
+  { value* frame = PUSH_K(2,1);
+    SET_FRAME(frame,0,stack[2]);
+  }
+  value func = stack[1];
+  value arg0 = stack[3];
+  stack[0] = arg0;
+  return ENTER(func,1);
 }
 
 func_p Z() {

@@ -3,7 +3,7 @@ top: regression.diffs regression-nn.diffs
 
 all: $(EXES)
 
-#FOS = -fos
+FOS = -fos
 
 EXAMPLES = combinator-fact fact list-processing nfib nthPrime over pap-over-app pythagorian thrice-thrice triangle parser do-example json-parser
 EXES = $(patsubst %, $(OUT)/%, $(EXAMPLES))

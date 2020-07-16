@@ -10,7 +10,7 @@ FUN = ../fun
 OUT = ../_build/perf
 
 #FUN_COMPILE_FLAGS += -nn
-#FUN_COMPILE_FLAGS += -fos
+FUN_COMPILE_FLAGS += -fos
 
 DEBUG = -g
 OPT = 3
