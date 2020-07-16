@@ -23,22 +23,25 @@ static int my_argc;
 static char** my_argv;
 
 noinline static must_use char* init_machine();
-noinline static char* interpret_byte_code();
+noinline static must_use func_p interpret_byte_code();
+
+const static func_p the_interpreter = (func_p)interpret_byte_code;
 
 inline static void set_code(char* c);
 
 #define stack_size 100
 static value stack[stack_size];
 
-static value* frame;
+static value* the_fp;
 
 value run_engine(int argc, char* argv[]) {
   my_argc = argc;
   my_argv = argv;
   char* code = init_machine();
   set_code(code);
-  while ((code = interpret_byte_code())) {
-    set_code(code);
+  func_p more = the_interpreter;
+  while (more) {
+    more = more();
   }
   return stack[0];
 }
@@ -50,16 +53,15 @@ void set_code(char* c) {
   the_code = c;
 }
 
-inline static void PUSH_K(int codeRef, int nFree);
-inline static void PUSH_KF(unsigned i, value f);
+inline static value* PUSH_K(int codeRef, int nFree);
 
-inline static must_use char* RET(value v1);
-inline static must_use char* ENTER(value funValue, unsigned nArgs);
-inline static must_use char* JUMP_NZ(value cond,int dest);
-inline static must_use char* ARITY_CHECK(int need);
+inline static must_use func_p RET(value v1);
+inline static must_use func_p ENTER(value funValue, unsigned nArgs);
+inline static must_use func_p JUMP_NZ(value cond,int dest);
+inline static must_use func_p ARITY_CHECK(int need);
 
 inline static must_use value* MAKE_CLO(int codeRef, int nFree);
-inline static void SET_CLO_FREE(value* clo, unsigned i, value v);
+inline static void SET_FRAME(value* frame, unsigned i, value v);
 
 //unary
 inline static void ShowChar(value v1);
@@ -80,29 +82,42 @@ inline static void EqString(value v1, value v2);
 inline static void StringAppend(value v1, value v2);
 inline static void StrIndex(value v1, value v2);
 
-inline static char next();
-inline static int digit();
-inline static value argument();
+inline static must_use char next();
+inline static must_use int digit();
+inline static must_use value argument();
 
 inline static void push_stack(value v);
-inline static char* get_code_ref(unsigned n);
+inline static must_use char* get_code_ref(char*,unsigned n);
+inline static must_use func_p get_native_ref(char*,unsigned n);
 
 //----------------------------------------------------------------------
-// byte-code intepreter
+// byte-code intepreter(func_p)(void*)
 
-char* interpret_byte_code() {
+inline static must_use func_p continue_bc(char* code) {
+  set_code(code); return(the_interpreter);
+}
+
+func_p interpret_byte_code() {
+
   char instr = 0;
   while ((instr = next())) {
     switch(instr) {
+
     case 'h': return 0; // halt
     case 'u': {
       int dest = digit();
-      return get_code_ref(dest);
+
+      func_p native = get_native_ref("u",dest);
+      if (native) {
+        return native;
+      }
+      char* code = get_code_ref("u",dest);
+      return continue_bc(code);
     }
     case 'j': {
       value cond = argument();
       int dest = digit();
-      { char* code = JUMP_NZ(cond, dest); if (code) return code; }
+      { func_p fn = JUMP_NZ(cond, dest); if (fn) return fn; }
       break;
     }
     case 'r': {
@@ -125,26 +140,26 @@ char* interpret_byte_code() {
     case 'c': {
       int codeRef = digit();
       int nFree = digit();
-      value* clo = MAKE_CLO(codeRef,nFree);
+      value* frame = MAKE_CLO(codeRef,nFree);
       for (int i = 0; i < nFree; i++) {
         value freeVal = argument();
-        SET_CLO_FREE(clo,i,freeVal);
+        SET_FRAME(frame,i,freeVal);
       }
       break;
     }
     case 'p': {
       int codeRef = digit();
       int nFree = digit();
-      PUSH_K(codeRef,nFree);
+      value* frame = PUSH_K(codeRef,nFree);
       for (int i = 0; i < nFree; i++) {
         value freeVal = argument();
-        PUSH_KF(i,freeVal);
+        SET_FRAME(frame,i,freeVal);
       }
       break;
     }
     case 'n': {
       int need = digit();
-      { char* code = ARITY_CHECK(need); if (code) return code; }
+      { func_p fn = ARITY_CHECK(need); if (fn) return fn; }
       break;
     }
 
@@ -175,6 +190,65 @@ char* interpret_byte_code() {
   }
   printf("interpret_byte_code: run out of code!\n");
   exit(1);
+}
+
+//----------------------------------------------------------------------
+// specific code sequences for the nfib example
+
+func_p V() {
+  { value* frame = MAKE_CLO(4,1); SET_FRAME(frame,0,stack[0]); }
+  Argv(lits[1]);
+  ReadInt(stack[1]);
+  value func = stack[0];
+  value arg0 = stack[2];
+  stack[0] = arg0;
+  return ENTER(func,1);
+}
+
+func_p W() {
+  return RET(lits[1]);
+}
+
+func_p X() {
+  Add(the_fp[0],stack[0]);
+  Add(stack[1],lits[1]);
+  return RET(stack[2]);
+}
+
+func_p X_fos() {
+  char* code = "+*0*1+*2$1r*3"; // makes perf slow!
+  return continue_bc(code);
+}
+
+func_p Y() {
+  Sub(the_fp[0],lits[0]);
+  { value* frame = PUSH_K(2,1);
+    SET_FRAME(frame,0,stack[0]);
+  }
+  value func = the_fp[1];
+  value arg0 = stack[1];
+  stack[0] = arg0;
+  return ENTER(func,1);
+}
+
+func_p Y_fos() {
+  char* code = "-*0$0p21*2t*11*3"; // makes perf slow!
+  return continue_bc(code);
+}
+
+func_p Z() {
+  { func_p fn = ARITY_CHECK(1); if (fn) return fn; }
+  LessNumOrChar(stack[0],lits[0]);
+  { func_p fn = JUMP_NZ(stack[1],1); if (fn) return fn; }
+  Sub(stack[0],lits[1]);
+  { value* frame = PUSH_K(3,2);
+    SET_FRAME(frame,0,stack[0]);
+    SET_FRAME(frame,1,the_fp[0]);
+  }
+  value func = the_fp[0];
+  value arg0 = stack[2];
+  stack[0] = arg0;
+  return ENTER(func,1);
 }
 
 //----------------------------------------------------------------------
@@ -229,7 +303,7 @@ value argument() {
   }
   case '~': {
     int n = digit();
-    value res = frame[n];
+    value res = the_fp[n];
     return res;
   }
   default:
@@ -250,19 +324,15 @@ static value* this_closure;
 //----------------------------------------------------------------------
 // byte code effects
 
-inline static value* heap_alloc(int n);
-inline static value* make_closure(int codeRef, int nFree);
-inline static must_use char* function_arity_check(int need);
+inline static must_use value* heap_alloc(int n);
 
-static void (*push_continuation)(char* code,int nFree);
-static must_use char* (*return_to_continuation)(value v);
+static must_use value* (*push_continuation)(char* code,int nFree);
+static must_use value* (*push_continuation_native)(func_p,int nFree);
+static must_use func_p (*return_to_continuation)(value v);
 
-#define BaseContinuationSize (config_fvs_on_stack ? 3 : 2)
-#define BaseClosureSize 1
-
-noinline static char* string_of_char(char arg);
-noinline static char* string_of_int(long arg);
-noinline static char* string_concat(char* s1, char* s2);
+noinline static must_use char* string_of_char(char arg);
+noinline static must_use char* string_of_int(long arg);
+noinline static must_use char* string_concat(char* s1, char* s2);
 
 //unary
 
@@ -368,46 +438,114 @@ void StrIndex(value v1, value v2) {
   push_stack((value)(long)c);
 }
 
-char* RET(value v1) {
+func_p RET(value v1) {
   return return_to_continuation(v1);
 }
 
-void PUSH_K(int codeRef, int nFree) {
-  char* futurecode = get_code_ref(codeRef);
-  push_continuation(futurecode,nFree);
+value* PUSH_K(int codeRef, int nFree) {
+  func_p native = get_native_ref("PUSH_K",codeRef);
+  if (native) {
+    return push_continuation_native(native,nFree);
+  }
+  char* futurecode = get_code_ref("PUSH_K",codeRef);
+  return push_continuation(futurecode,nFree);
 }
 
-void PUSH_KF(unsigned i, value f) {
-  kont[i + BaseContinuationSize] = f;
+
+noinline static must_use value* make_pap(int got, int need);
+noinline static void push_overApp(int got, int need);
+noinline static must_use char* get_pap_got_need(unsigned got, unsigned need);
+noinline static must_use char* get_overapp_extra(unsigned extra);
+
+
+static must_use func_p enter_native_closure(value* clo) {
+  func_p native = clo[1];
+  the_fp = &clo[2];
+  return native;
 }
 
-char* ENTER(value funValue, unsigned nArgs) {
+static must_use func_p enter_byte_code_closure(value* clo) {
+  char* code = clo[1];
+  the_fp = &clo[2];
+  return continue_bc(code);
+}
+
+typedef func_p (*enter_p)(value* clo);
+
+value* MAKE_CLO(int codeRef, int nFree) {
+
+  func_p native = get_native_ref("MAKE_CLO",codeRef);
+  if (native) {
+    value* clo = heap_alloc(2 + nFree);
+    push_stack(clo);
+    clo[0] = enter_native_closure;
+    clo[1] = native;
+    return &clo[2];
+  }
+
+  value* clo = heap_alloc(2 + nFree);
+  push_stack(clo);
+  clo[0] = enter_byte_code_closure;
+  clo[1] = get_code_ref("MAKE_CLO",codeRef);
+  return &clo[2];
+}
+
+void SET_FRAME(value* frame, unsigned i, value v) {
+  frame[i] = v;
+}
+
+value* make_pap(int got, int need) {
+  value* clo = heap_alloc(3 + got);
+  clo[0] = enter_byte_code_closure;
+  clo[1] = get_pap_got_need(got,need);
+  clo[2] = this_closure;
+  for (int i = 0; i < got; i++) {
+    clo[3 + i] = stack[i];
+  }
+  return clo;
+}
+
+func_p ENTER(value funValue, unsigned nArgs) {
   value* clo = (value*)funValue;
   this_closure = clo;
-  char* code = clo[0];
-  frame = &clo[1];
+  enter_p enterer = clo[0];
   sp = stack + nArgs;
-  return code;
+  return enterer(clo);
 }
 
-char* JUMP_NZ(value cond,int dest) {
+
+func_p JUMP_NZ(value cond,int dest) {
   if (cond) {
-    return get_code_ref(dest);
+    func_p native = get_native_ref("JUMP_NZ",dest);
+    if (native) return native;
+    char* code = get_code_ref("JUMP_NZ",dest);
+    return continue_bc(code);
   }
   return 0;
 }
 
-char* ARITY_CHECK(int need) {
-  return function_arity_check(need);
+func_p ARITY_CHECK(int need) {
+  int got = (sp - stack);
+  if (got < need) {
+    value* pap = make_pap(got,need);
+    return return_to_continuation(pap);
+  }
+  if (got > need) {
+    push_overApp(got,need);
+  }
+  return 0;
 }
 
-value* MAKE_CLO(int codeRef, int nFree) {
-  value* clo = make_closure(codeRef,nFree);
-  return clo;
-}
 
-void SET_CLO_FREE(value* clo, unsigned i, value v) {
-  clo[i+BaseClosureSize] = v;
+void push_overApp(int got, int need) {
+  unsigned extra = got - need;
+  char* futureCode = get_overapp_extra(extra);
+  value* frame = push_continuation(futureCode,extra);
+  for (int i = 0; i < extra; i++) {
+    value v = stack[i+need];
+    SET_FRAME(frame,i,v);
+  }
+  sp -= extra; //adjust for the number of args stashed in the oveapp kont
 }
 
 //----------------------------------------------------------------------
@@ -463,45 +601,93 @@ void check_overapp_ref(unsigned n) {
 // FOS = "free variables on stack"
 // FIF = "free variables in frame"
 
-static value final_continuation_FOS[] = { (value)0, (value)"h", (value)0 };
-static value final_continuation_FIF[] = { (value)"h", (value)0 };
+typedef func_p (*enter_kp)();
 
-void push_continuation_FOS(char* code,int nFree) {
-  value* k = heap_alloc(nFree + BaseContinuationSize);
-  k[0] = (value)(long)nFree;
-  k[1] = code;
-  k[2] = kont;
+
+value* push_continuation_native_FOS(func_p fn,int nFree) {
+  value* k = heap_alloc(3 + nFree);
+  k[0] = kont;
+  k[1] = (value)(long)nFree;
+  k[2 + nFree] = fn;
   kont = k;
+  return &k[2];
 }
 
-void push_continuation_FIF(char* code,int nFree) {
-  value* k = heap_alloc(nFree + BaseContinuationSize);
-  k[0] = code;
-  k[1] = kont;
-  kont = k;
+static must_use func_p enter_byte_code_continuation_FOS() {
+  char* code = the_fp[0];
+  the_fp = 0;
+  return continue_bc(code);
 }
 
-char* return_to_continuation_FOS(value v) {
-  int nFree = (long)kont[0];
-  char* code = kont[1];
-  frame = 0;
-  sp = stack;
+static value final_continuation_FOS[] =
+  { 0, //kont
+    0, //nFree
+    enter_byte_code_continuation_FOS,
+    (value)"h"
+  };
+
+value* push_continuation_FOS(char* code,int nFree) {
+  value* k = heap_alloc(3 + nFree + 1);
+  k[0] = kont;
+  k[1] = (value)(long)nFree;
+  k[2 + nFree] = enter_byte_code_continuation_FOS;
+  k[3 + nFree] = code;
+  kont = k;
+  return &k[2];
+}
+
+func_p return_to_continuation_FOS(value v) {
+  int nFree = (long)kont[1];
+  stack[nFree] = v;
+  sp = &stack[nFree+1];
   for (int i = 0; i < nFree; i++) {
-    value v = kont[i + BaseContinuationSize];
-    push_stack(v);
+    value v = kont[2 + i];
+    stack[i] = v;
   }
-  push_stack(v);
-  kont = kont[2];
-  return code;
+  enter_kp enterer = kont[2 + nFree];
+  the_fp = &kont[3+nFree];
+  kont = kont[0];
+  return enterer();
 }
 
-char* return_to_continuation_FIF(value v) {
-  char* code = kont[0];
-  frame = &kont[BaseContinuationSize];
+
+value* push_continuation_native_FIF(func_p fn,int nFree) {
+  value* k = heap_alloc(2 + nFree);
+  k[0] = kont;
+  k[1] = fn;
+  kont = k;
+  return &k[2];
+}
+
+static must_use func_p enter_byte_code_continuation_FIF() {
+  char* code = the_fp[0];
+  the_fp++;
+  return continue_bc(code);
+}
+
+static value final_continuation_FIF[] =
+  {
+   0, //kont
+   enter_byte_code_continuation_FIF,
+   (value)"h"
+  };
+
+value* push_continuation_FIF(char* code,int nFree) {
+  value* k = heap_alloc(3 + nFree);
+  k[0] = kont;
+  k[1] = enter_byte_code_continuation_FIF;
+  k[2] = code;
+  kont = k;
+  return &k[3];
+}
+
+func_p return_to_continuation_FIF(value v) {
+  the_fp = &kont[2];
   sp = stack;
   push_stack(v);
-  kont = kont[1];
-  return code;
+  enter_kp enterer = kont[1];
+  kont = kont[0];
+  return enterer();
 }
 
 static char* overapp_code_FOS[] =
@@ -552,6 +738,11 @@ char* init_machine() {
     ? &push_continuation_FOS
     : &push_continuation_FIF;
 
+  push_continuation_native =
+    config_fvs_on_stack
+    ? &push_continuation_native_FOS
+    : &push_continuation_native_FIF;
+
   return_to_continuation =
     config_fvs_on_stack
     ? &return_to_continuation_FOS
@@ -560,58 +751,11 @@ char* init_machine() {
   hp = &heap[0];
   sp = stack;
 
-  char* code = get_code_ref(0); // can fail if there is no code
+  // TODO: get_native_ref
+  char* code = get_code_ref("init",0); // can fail if there is no code
   return code;
-
 }
 
-
-noinline static value* make_pap(int got, int need);
-noinline static void push_overApp(int got, int need);
-noinline static char* get_pap_got_need(unsigned got, unsigned need);
-noinline static char* get_overapp_extra(unsigned extra);
-
-
-value* make_closure(int codeRef, int nFree) {
-  value* clo = heap_alloc(nFree+1);
-  push_stack(clo);
-  clo[0] = get_code_ref(codeRef);
-  return clo;
-}
-
-char* function_arity_check(int need) {
-  int got = (sp - stack);
-  if (got < need) {
-    value* pap = make_pap(got,need);
-    char* code = return_to_continuation(pap);
-    return code;
-  }
-  if (got > need) {
-    push_overApp(got,need);
-  }
-  return 0;
-}
-
-value* make_pap(int got, int need) {
-  value* pap = heap_alloc(got+2);
-  pap[0] = get_pap_got_need(got,need);
-  pap[1] = this_closure;
-  for (int i = 0; i < got; i++) {
-    pap[i+2] = stack[i];
-  }
-  return pap;
-}
-
-void push_overApp(int got, int need) {
-  unsigned extra = got - need;
-  char* futureCode = get_overapp_extra(extra);
-  push_continuation(futureCode,extra);
-  for (int i = 0; i < extra; i++) {
-    value v = stack[i+need];
-    kont[i + BaseContinuationSize] = v;
-  }
-  sp -= extra; //adjust for the number of args stashed in the oveapp kont
-}
 
 #ifndef NDEBUG
 static value* heap_end = &heap[heap_size];
@@ -632,11 +776,22 @@ void push_stack(value v) {
   *sp++ = v;
 }
 
-char* get_code_ref(unsigned n) {
+char* get_code_ref(char* who, unsigned n) {
+  //printf("get_code_ref(%s,%d)\n",who,n);
 #ifndef NDEBUG
   check_code_ref(n);
 #endif
   return prog[n];
+}
+
+func_p get_native_ref(char* who, unsigned n) {
+  //printf("get_native_ref(%s,%d)\n",who,n);
+#ifndef NDEBUG
+  check_code_ref(n);
+#endif
+  //func_p res = native[n];
+  //printf("get_native_ref(%s,%d) -> %p\n",who,n,res);
+  return native[n];
 }
 
 char* get_pap_got_need(unsigned got, unsigned need) {
@@ -715,7 +870,7 @@ static char* pap_code[] =
 // heap objects. And for heap objects to have a descriptor word. All
 // this is needed anyway to implement GC.
 
-static bool_t temp_looks_like_string(value v) {
+static must_use bool_t temp_looks_like_string(value v) {
   return v > (value)(1L<<40);
 }
 

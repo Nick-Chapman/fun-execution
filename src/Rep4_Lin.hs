@@ -44,7 +44,28 @@ instance Show Code where
     , "char* prog[] ="
     , "  {" ] ++
     [ "   \"" ++ show seq ++ "\", //" ++ show i | (i,seq) <- zip [0::Int ..] defs ] ++
+    [ "  };"
+    , "func_p native[] ="
+    , "  {" ] ++
+    [ "   (func_p)" ++ showNative seq ++ ", //" ++ show i | (i,seq) <- zip [0::Int ..] defs ] ++
     [ "  };" ]
+
+
+showNative :: CodeSequence -> String
+showNative seq = do
+  let s = show seq
+  case s of
+    "r$1" -> "W"
+    "+~0*0+*1$1r*2" -> "X"
+    "-~0$0p21*0t~11*1" -> "Y"
+    "n1<*0$0j*11-*0$1p32*0~0t~01*2" -> "Z"
+    "c41*0A$1R*1t*01*2" -> "V"
+
+    "+*0*1+*2$1r*3" -> "X_fos"
+    "-*0$0p21*2t*11*3" -> "Y_fos"
+
+
+    _ -> "0"
 
 instance Show ValRef where
   show = \case

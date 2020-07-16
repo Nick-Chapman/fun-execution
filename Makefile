@@ -3,6 +3,8 @@ top: regression.diffs regression-nn.diffs
 
 all: $(EXES)
 
+#FOS = -fos
+
 EXAMPLES = combinator-fact fact list-processing nfib nthPrime over pap-over-app pythagorian thrice-thrice triangle parser do-example json-parser
 EXES = $(patsubst %, $(OUT)/%, $(EXAMPLES))
 EXES_NN = $(patsubst %, $(OUT)/%-nn, $(EXAMPLES))
@@ -10,7 +12,6 @@ BC = bc
 
 OUT = _build
 
-#FUN_COMPILE_FLAGS = -fos
 
 DEBUG = -g
 
@@ -23,32 +24,35 @@ regression.diffs: test/liberal-diff.sh test/test.expected $(OUT)/test.out
 regression-nn.diffs: test/liberal-diff.sh test/test-nn.expected $(OUT)/test-nn.out
 	$^
 
-run-%: $(OUT)/%
-	$^
-
 $(OUT)/test.out: test/test.sh $(EXES)
 	test/test.sh > $@
 
 $(OUT)/test-nn.out: test/test.sh $(EXES_NN)
 	test/test.sh -nn > $@
 
-$(OUT)/%: $(OUT)/main.o $(OUT)/engine.o $(OUT)/%.o
+$(OUT)/%: $(OUT)/%-$(FOS) Makefile
+	cp $< $@
+
+$(OUT)/%-nn: $(OUT)/%-$(FOS)-nn Makefile
+	cp $< $@
+
+$(OUT)/%-$(FOS): $(OUT)/main.o $(OUT)/engine.o $(OUT)/%-$(FOS).o
 	gcc $^ -o $@
 
-$(OUT)/%-nn: $(OUT)/main.o $(OUT)/engine.o $(OUT)/%-nn.o
+$(OUT)/%-$(FOS)-nn: $(OUT)/main.o $(OUT)/engine.o $(OUT)/%-$(FOS)-nn.o
 	gcc $^ -o $@
 
-$(OUT)/%.o: $(OUT)/%.c $(BC)/value.h .dir
+$(OUT)/%-$(FOS).o: $(OUT)/%-$(FOS).c $(BC)/value.h .dir
 	gcc -I$(BC) -Wall -Werror $(DEBUG) -c $< -o $@
 
-$(OUT)/%-nn.o: $(OUT)/%-nn.c $(BC)/value.h .dir
+$(OUT)/%-$(FOS)-nn.o: $(OUT)/%-$(FOS)-nn.c $(BC)/value.h .dir
 	gcc -I$(BC) -Wall -Werror $(DEBUG) -c $< -o $@
 
-$(OUT)/%.c: fun/%.fun src/*.hs .dir Makefile
-	stack run batch -- $(FUN_COMPILE_FLAGS) $< $@
+$(OUT)/%-$(FOS).c: fun/%.fun src/*.hs .dir
+	stack run batch -- $(FOS) $< $@
 
-$(OUT)/%-nn.c: fun/%.fun src/*.hs .dir Makefile
-	stack run batch -- -nn $(FUN_COMPILE_FLAGS) $< $@
+$(OUT)/%-$(FOS)-nn.c: fun/%.fun src/*.hs .dir
+	stack run batch -- -nn $(FOS) $< $@
 
 $(OUT)/engine.o: $(BC)/engine.c $(BC)/value.h .dir
 	gcc -Wall -Werror $(DEBUG) -c $< -o $@
