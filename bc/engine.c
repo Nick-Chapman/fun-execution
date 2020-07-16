@@ -39,9 +39,9 @@ value run_engine(int argc, char* argv[]) {
   my_argv = argv;
   char* code = init_machine();
   set_code(code);
-  func_p more = the_interpreter;
-  while (more) {
-    more = more();
+  func_p fn = the_interpreter;
+  while (fn) {
+    fn = fn();
   }
   return stack[0];
 }
@@ -107,9 +107,9 @@ func_p interpret_byte_code() {
     case 'u': {
       int dest = digit();
 
-      func_p native = get_native_ref("u",dest);
-      if (native) {
-        return native;
+      func_p fn = get_native_ref("u",dest);
+      if (fn) {
+        return fn;
       }
       char* code = get_code_ref("u",dest);
       return continue_bc(code);
@@ -450,52 +450,49 @@ func_p RET(value v1) {
 }
 
 value* PUSH_K(int codeRef, int nFree) {
-  func_p native = get_native_ref("PUSH_K",codeRef);
-  if (native) {
-    return push_continuation_native(native,nFree);
+  func_p fn = get_native_ref("PUSH_K",codeRef);
+  if (fn) {
+    return push_continuation_native(fn,nFree);
   }
   char* futurecode = get_code_ref("PUSH_K",codeRef);
   return push_continuation(futurecode,nFree);
 }
-
 
 noinline static must_use value* make_pap(int got, int need);
 noinline static void push_overApp(int got, int need);
 noinline static must_use char* get_pap_got_need(unsigned got, unsigned need);
 noinline static must_use char* get_overapp_extra(unsigned extra);
 
+typedef func_p (*enter_p)();
 
-//TODO: avoid need for this
-static must_use func_p enter_native_closure(value* clo) {
-  func_p native = clo[1];
-  the_fp = &clo[2];
-  return native;
-}
-
-// TODO: avoid pass clo. get info from the_fp. as is done
-// when entering continuations. In fact, we can unify all the enter_ codes.
-static must_use func_p enter_byte_code_closure(value* clo) {
-  char* code = clo[1];
-  the_fp = &clo[2];
+static must_use func_p enter_byte_code() {
+  char* code = the_fp[0];
+  the_fp++;
   return continue_bc(code);
 }
 
-typedef func_p (*enter_p)(value* clo);
+func_p ENTER(value funValue, unsigned nArgs) {
+  value* clo = (value*)funValue;
+  this_closure = clo;
+  enter_p enterer = clo[0];
+  sp = stack + nArgs;
+  the_fp = &clo[1];
+  return enterer();
+}
 
 value* MAKE_CLO(int codeRef, int nFree) {
 
-  func_p native = get_native_ref("MAKE_CLO",codeRef);
-  if (native) {
-    value* clo = heap_alloc(2 + nFree);
+  func_p fn = get_native_ref("MAKE_CLO",codeRef);
+  if (fn) {
+    value* clo = heap_alloc(1 + nFree);
     push_stack(clo);
-    clo[0] = enter_native_closure;
-    clo[1] = native;
-    return &clo[2];
+    clo[0] = fn;
+    return &clo[1];
   }
 
   value* clo = heap_alloc(2 + nFree);
   push_stack(clo);
-  clo[0] = enter_byte_code_closure;
+  clo[0] = enter_byte_code;
   clo[1] = get_code_ref("MAKE_CLO",codeRef);
   return &clo[2];
 }
@@ -506,7 +503,7 @@ void SET_FRAME(value* frame, unsigned i, value v) {
 
 value* make_pap(int got, int need) {
   value* clo = heap_alloc(3 + got);
-  clo[0] = enter_byte_code_closure;
+  clo[0] = enter_byte_code;
   clo[1] = get_pap_got_need(got,need);
   clo[2] = this_closure;
   for (int i = 0; i < got; i++) {
@@ -515,19 +512,10 @@ value* make_pap(int got, int need) {
   return clo;
 }
 
-func_p ENTER(value funValue, unsigned nArgs) {
-  value* clo = (value*)funValue;
-  this_closure = clo;
-  enter_p enterer = clo[0];
-  sp = stack + nArgs;
-  return enterer(clo);
-}
-
-
 func_p JUMP_NZ(value cond,int dest) {
   if (cond) {
-    func_p native = get_native_ref("JUMP_NZ",dest);
-    if (native) return native;
+    func_p fn = get_native_ref("JUMP_NZ",dest);
+    if (fn) return fn;
     char* code = get_code_ref("JUMP_NZ",dest);
     return continue_bc(code);
   }
@@ -611,9 +599,6 @@ void check_overapp_ref(unsigned n) {
 // FOS = "free variables on stack"
 // FIF = "free variables in frame"
 
-typedef func_p (*enter_kp)();
-
-
 value* push_continuation_native_FOS(func_p fn,int nFree) {
   value* k = heap_alloc(3 + nFree);
   k[0] = kont;
@@ -623,16 +608,10 @@ value* push_continuation_native_FOS(func_p fn,int nFree) {
   return &k[2];
 }
 
-static must_use func_p enter_byte_code_continuation_FOS() {
-  char* code = the_fp[0];
-  the_fp = 0;
-  return continue_bc(code);
-}
-
 static value final_continuation_FOS[] =
   { 0, //kont
     0, //nFree
-    enter_byte_code_continuation_FOS,
+    enter_byte_code,
     (value)"h"
   };
 
@@ -640,7 +619,7 @@ value* push_continuation_FOS(char* code,int nFree) {
   value* k = heap_alloc(3 + nFree + 1);
   k[0] = kont;
   k[1] = (value)(long)nFree;
-  k[2 + nFree] = enter_byte_code_continuation_FOS;
+  k[2 + nFree] = enter_byte_code;
   k[3 + nFree] = code;
   kont = k;
   return &k[2];
@@ -654,7 +633,7 @@ func_p return_to_continuation_FOS(value v) {
     value v = kont[2 + i];
     stack[i] = v;
   }
-  enter_kp enterer = kont[2 + nFree];
+  enter_p enterer = kont[2 + nFree];
   the_fp = &kont[3+nFree];
   kont = kont[0];
   return enterer();
@@ -669,23 +648,18 @@ value* push_continuation_native_FIF(func_p fn,int nFree) {
   return &k[2];
 }
 
-static must_use func_p enter_byte_code_continuation_FIF() {
-  char* code = the_fp[0];
-  the_fp++;
-  return continue_bc(code);
-}
 
 static value final_continuation_FIF[] =
   {
    0, //kont
-   enter_byte_code_continuation_FIF,
+   enter_byte_code,
    (value)"h"
   };
 
 value* push_continuation_FIF(char* code,int nFree) {
   value* k = heap_alloc(3 + nFree);
   k[0] = kont;
-  k[1] = enter_byte_code_continuation_FIF;
+  k[1] = enter_byte_code;
   k[2] = code;
   kont = k;
   return &k[3];
@@ -695,7 +669,7 @@ func_p return_to_continuation_FIF(value v) {
   the_fp = &kont[2];
   sp = stack;
   push_stack(v);
-  enter_kp enterer = kont[1];
+  enter_p enterer = kont[1];
   kont = kont[0];
   return enterer();
 }
