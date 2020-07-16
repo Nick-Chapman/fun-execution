@@ -15,7 +15,7 @@ int json_parser_pipeline(char* n) {
 
 int main() {
 
-  char* n = "15"; // 16 causes Segmentation fault. TODO: why?
+  char* n = "14"; // 15, 16 causes Segmentation fault. TODO: why?
 
   for (;;) {
     clock_t start = clock();
