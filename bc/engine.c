@@ -458,12 +458,15 @@ noinline static must_use char* get_pap_got_need(unsigned got, unsigned need);
 noinline static must_use char* get_overapp_extra(unsigned extra);
 
 
+//TODO: avoid need for this
 static must_use func_p enter_native_closure(value* clo) {
   func_p native = clo[1];
   the_fp = &clo[2];
   return native;
 }
 
+// TODO: avoid pass clo. get info from the_fp. as is done
+// when entering continuations. In fact, we can unify all the enter_ codes.
 static must_use func_p enter_byte_code_closure(value* clo) {
   char* code = clo[1];
   the_fp = &clo[2];
