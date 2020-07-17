@@ -19,6 +19,8 @@ extern func_p native[];
 
 // specific code sequences for the nfib example
 
+extern func_p U5(void);
+
 extern func_p V(void);
 extern func_p W(void);
 extern func_p X(void);

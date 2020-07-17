@@ -22,7 +22,7 @@ static char* the_code;
 static int my_argc;
 static char** my_argv;
 
-noinline static must_use char* init_machine();
+noinline static must_use func_p init_machine();
 noinline static must_use func_p interpret_byte_code();
 
 const static func_p the_interpreter = (func_p)interpret_byte_code;
@@ -37,9 +37,7 @@ static value* the_fp;
 value run_engine(int argc, char* argv[]) {
   my_argc = argc;
   my_argv = argv;
-  char* code = init_machine();
-  set_code(code);
-  func_p fn = the_interpreter;
+  func_p fn = init_machine();
   while (fn) {
     fn = fn();
   }
@@ -57,6 +55,7 @@ inline static value* PUSH_K(int codeRef, int nFree);
 
 inline static must_use func_p RET(value v1);
 inline static must_use func_p ENTER(value funValue, unsigned nArgs);
+inline static must_use func_p JUMP(int dest);
 inline static must_use func_p JUMP_NZ(value cond,int dest);
 inline static must_use func_p ARITY_CHECK(int need);
 
@@ -194,6 +193,10 @@ func_p interpret_byte_code() {
 
 //----------------------------------------------------------------------
 // specific code sequences for the nfib example
+
+func_p U5() {
+  return JUMP(5);
+}
 
 func_p V() {
   { value* frame = MAKE_CLO(4,1); SET_FRAME(frame,0,stack[0]); }
@@ -512,6 +515,15 @@ value* make_pap(int got, int need) {
   return clo;
 }
 
+func_p JUMP(int dest) {
+  func_p fn = get_native_ref("u",dest);
+  if (fn) {
+    return fn;
+  }
+  char* code = get_code_ref("u",dest);
+  return continue_bc(code);
+}
+
 func_p JUMP_NZ(value cond,int dest) {
   if (cond) {
     func_p fn = get_native_ref("JUMP_NZ",dest);
@@ -699,7 +711,7 @@ static char* overapp_code_FIF[] =
 
 static value heap[heap_size];
 
-char* init_machine() {
+func_p init_machine() {
 
   overapp_code =
     config_fvs_on_stack
@@ -735,11 +747,11 @@ char* init_machine() {
   hp = &heap[0];
   sp = stack;
 
-  // TODO: get_native_ref
+  func_p fn = get_native_ref("init",0);
+  if (fn) return fn;
   char* code = get_code_ref("init",0); // can fail if there is no code
-  return code;
+  return continue_bc(code);
 }
-
 
 #ifndef NDEBUG
 static value* heap_end = &heap[heap_size];
