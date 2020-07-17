@@ -9,19 +9,20 @@ import JsonParser (pipeline)
 main :: IO ()
 main = sequence_ $ repeat $ do
 
-  let n = 19
+  let n = 20
 
   before <- getCurrentTime
   let !size = pipeline n
   after <- getCurrentTime
 
-  let size_k :: Double = fromIntegral size / 1e3
+  --let size_k :: Double = fromIntegral size / 1e3
+  let size_b :: Double = fromIntegral size
   let duration_s :: Double = realToFrac (diffUTCTime after before)
-  let speed_k_per_s = size_k / duration_s
+  let speed_k_per_s = size_b / 1000 / duration_s
 
   let mes = concat
         [ "n = ", show n
-        , ", size(k) = ", showFFloat (Just 0) size_k ""
+        , ", size(b) = ", showFFloat (Just 0) size_b ""
         , ", duration(s) = ", showFFloat (Just 3) duration_s ""
         , ", speed(k/s) = ", showFFloat (Just 0) speed_k_per_s ""
         ]

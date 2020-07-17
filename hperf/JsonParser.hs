@@ -26,6 +26,7 @@ nfibJ 1 = lit 1
 nfibJ n = add (lit 1) (add (nfibJ (n-1)) (nfibJ (n-2)))
 
 
+{-
 -- Constructors for JSON rep of simple arithmetic expressions
 lit :: Int -> Json
 lit n = Jobject [("lit", Jnumber n),("extra",Jstring"info")]
@@ -33,13 +34,33 @@ lit n = Jobject [("lit", Jnumber n),("extra",Jstring"info")]
 add :: Json -> Json -> Json
 add x y = Jobject [("op", Jarray [x,y]), ("isAdd",Jtrue)]
 
-
 -- Evaluate JSON represented arithmetic expressions
 eval :: Json -> Int
 eval = \case
   Jobject [("lit", Jnumber n),("extra",Jstring _)] -> n
   Jobject [("op", Jarray [x,y]), ("isAdd",Jtrue)] -> eval x + eval y
   Jobject [("op", Jarray [x,y]), ("isAdd",Jfalse)] -> eval x - eval y
+  x -> error $ "eval unexpected ast: " ++ show x
+-}
+
+
+
+-- Match the .fun version...
+
+-- Constructors for JSON rep of simple arithmetic expressions
+
+lit :: Int -> Json
+lit n = Jobject [("lit", Jnumber n)]
+
+add :: Json -> Json -> Json
+add x y = Jobject [("add", Jarray [x,y])]
+
+
+-- Evaluate JSON represented arithmetic expressions
+eval :: Json -> Int
+eval = \case
+  Jobject [("lit", Jnumber n)] -> n
+  Jobject [("add", Jarray [x,y])] -> eval x + eval y
   x -> error $ "eval unexpected ast: " ++ show x
 
 
