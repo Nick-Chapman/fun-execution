@@ -15,6 +15,8 @@ FUN_COMPILE_FLAGS += -fos
 DEBUG = -g
 OPT = 3
 
+NDEBUG_FLAG = -DNDEBUG
+
 .PRECIOUS: $(OUT)/%
 .SECONDARY:
 
@@ -37,7 +39,7 @@ $(OUT)/%-inter-$(OPT).o: %-inter.c .dir
 	gcc -I$(BC) -O$(OPT) -Wall -Werror $(DEBUG) -c $< -o $@
 
 $(OUT)/engine-$(OPT).o: $(BC)/engine.c $(BC)/value.h .dir
-	gcc -I$(BC) -O$(OPT) -DNDEBUG --param large-function-growth=2000 -Winline -Wall -Werror $(DEBUG) -c $< -o $@
+	gcc -I$(BC) -O$(OPT) $(NDEBUG_FLAG) --param large-function-growth=2000 -Winline -Wall -Werror $(DEBUG) -c $< -o $@
 
 $(OUT)/%-$(OPT).o: $(OUT)/%.c $(BC)/value.h .dir
 	gcc -I$(BC) -O$(OPT) -Wall -Werror $(DEBUG) -c $< -o $@

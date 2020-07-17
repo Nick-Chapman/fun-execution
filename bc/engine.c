@@ -707,7 +707,8 @@ static char* overapp_code_FIF[] =
   };
 
 
-#define heap_size 100000000
+#define meg (1024 * 1024)
+#define heap_size (200 * meg)
 
 static value heap[heap_size];
 
@@ -753,18 +754,16 @@ func_p init_machine() {
   return continue_bc(code);
 }
 
-#ifndef NDEBUG
 static value* heap_end = &heap[heap_size];
-#endif
+
+static void heap_exhausted() {
+  printf("heap exhausted\n"); exit(1);
+}
 
 value* heap_alloc(int n) {
   value* res = hp;
   hp += n;
-#ifndef NDEBUG
-  if (hp > heap_end) {
-    printf("heap exhausted\n"); exit(1);
-  }
-#endif
+  if (hp > heap_end) { heap_exhausted(); }
   return res;
 }
 
