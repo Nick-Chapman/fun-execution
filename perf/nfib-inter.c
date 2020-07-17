@@ -15,17 +15,22 @@ int nfib(char* n) {
 
 int main() {
 
-  char* n = "31";
+  int n = 25;
 
   for (;;) {
+    static char arg[50];
+    sprintf(arg,"%d",n);
+
     clock_t start = clock();
-    long result = nfib(n);
+    long result = nfib(arg);
     clock_t end = clock();
 
     double duration = (end-start)/1000000.0;
     double nfibs_per_ms = (double)result / (end - start);
 
-    printf("n = '%s', res = %ld, duration(s) = %.3g, speed(nfibs/us) = %.3g\n",
+    printf("n = '%d', res = %8ld, duration(s) = %.3g, speed(nfibs/us) = %.3g\n",
            n, result, duration, nfibs_per_ms);
+
+    if (duration < 0.2) n++;
   }
 }
