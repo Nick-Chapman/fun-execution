@@ -3,6 +3,7 @@ top: regression.diffs regression-nn.diffs
 
 all: $(EXES)
 
+# use (slower) FOS for regression testing
 FOS = -fos
 
 EXAMPLES = combinator-fact fact list-processing nfib nthPrime over pap-over-app pythagorian thrice-thrice triangle parser do-example json-parser

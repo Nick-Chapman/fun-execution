@@ -11,13 +11,10 @@ static char* pap_code[];
 static char** overapp_code;
 
 #define noinline __attribute__ ((noinline))
-#define must_use __attribute__ ((warn_unused_result))
 
 // entry points. TODO: engine.h
 void run_engine_show_info(int argc, char* argv[]);
 value run_engine(int argc, char* argv[]);
-
-static char* the_code;
 
 static int my_argc;
 static char** my_argv;
@@ -27,7 +24,18 @@ noinline static must_use func_p interpret_byte_code();
 
 const static func_p the_interpreter = (func_p)interpret_byte_code;
 
-inline static void set_code(char* c);
+static char* the_code;
+
+inline static void set_code(char* c) {
+#ifdef TRACE
+  printf("set_code: %s\n",c);
+#endif
+  the_code = c;
+}
+
+inline func_p bytecode(char* code) {
+  set_code(code); return(the_interpreter);
+}
 
 #define stack_size 100
 static value stack[stack_size];
@@ -39,16 +47,9 @@ value run_engine(int argc, char* argv[]) {
   my_argv = argv;
   func_p fn = init_machine();
   while (fn) {
-    fn = fn();
+    fn = (func_p)fn();
   }
   return stack[0];
-}
-
-void set_code(char* c) {
-#ifdef TRACE
-  printf("set_code: %s\n",c);
-#endif
-  the_code = c;
 }
 
 inline static value* PUSH_K(int codeRef, int nFree);
@@ -86,15 +87,9 @@ inline static must_use int digit();
 inline static must_use value argument();
 
 inline static void push_stack(value v);
-inline static must_use char* get_code_ref(char*,unsigned n);
-inline static must_use func_p get_native_ref(char*,unsigned n);
+inline static must_use func_p get_native_ref(unsigned n);
 
-//----------------------------------------------------------------------
-// byte-code intepreter(func_p)(void*)
 
-inline static must_use func_p continue_bc(char* code) {
-  set_code(code); return(the_interpreter);
-}
 
 func_p interpret_byte_code() {
 
@@ -105,13 +100,7 @@ func_p interpret_byte_code() {
     case 'h': return 0; // halt
     case 'u': {
       int dest = digit();
-
-      func_p fn = get_native_ref("u",dest);
-      if (fn) {
-        return fn;
-      }
-      char* code = get_code_ref("u",dest);
-      return continue_bc(code);
+      return get_native_ref(dest);
     }
     case 'j': {
       value cond = argument();
@@ -453,12 +442,8 @@ func_p RET(value v1) {
 }
 
 value* PUSH_K(int codeRef, int nFree) {
-  func_p fn = get_native_ref("PUSH_K",codeRef);
-  if (fn) {
-    return push_continuation_native(fn,nFree);
-  }
-  char* futurecode = get_code_ref("PUSH_K",codeRef);
-  return push_continuation(futurecode,nFree);
+  func_p fn = get_native_ref(codeRef);
+  return push_continuation_native(fn,nFree);
 }
 
 noinline static must_use value* make_pap(int got, int need);
@@ -471,7 +456,7 @@ typedef func_p (*enter_p)();
 static must_use func_p enter_byte_code() {
   char* code = the_fp[0];
   the_fp++;
-  return continue_bc(code);
+  return bytecode(code);
 }
 
 func_p ENTER(value funValue, unsigned nArgs) {
@@ -484,20 +469,11 @@ func_p ENTER(value funValue, unsigned nArgs) {
 }
 
 value* MAKE_CLO(int codeRef, int nFree) {
-
-  func_p fn = get_native_ref("MAKE_CLO",codeRef);
-  if (fn) {
-    value* clo = heap_alloc(1 + nFree);
-    push_stack(clo);
-    clo[0] = fn;
-    return &clo[1];
-  }
-
-  value* clo = heap_alloc(2 + nFree);
+  func_p fn = get_native_ref(codeRef);
+  value* clo = heap_alloc(1 + nFree);
   push_stack(clo);
-  clo[0] = enter_byte_code;
-  clo[1] = get_code_ref("MAKE_CLO",codeRef);
-  return &clo[2];
+  clo[0] = fn;
+  return &clo[1];
 }
 
 void SET_FRAME(value* frame, unsigned i, value v) {
@@ -516,20 +492,12 @@ value* make_pap(int got, int need) {
 }
 
 func_p JUMP(int dest) {
-  func_p fn = get_native_ref("u",dest);
-  if (fn) {
-    return fn;
-  }
-  char* code = get_code_ref("u",dest);
-  return continue_bc(code);
+  return get_native_ref(dest);
 }
 
 func_p JUMP_NZ(value cond,int dest) {
   if (cond) {
-    func_p fn = get_native_ref("JUMP_NZ",dest);
-    if (fn) return fn;
-    char* code = get_code_ref("JUMP_NZ",dest);
-    return continue_bc(code);
+    return get_native_ref(dest);
   }
   return 0;
 }
@@ -564,7 +532,7 @@ void push_overApp(int got, int need) {
 static unsigned max_code_ref = 0;
 static void init_max_code_ref() {
   unsigned i = 0;
-  for (; prog[i]; i++);
+  for (; native[i]; i++);
   max_code_ref = i;
 }
 static void check_code_ref(unsigned n) {
@@ -747,11 +715,7 @@ func_p init_machine() {
 
   hp = &heap[0];
   sp = stack;
-
-  func_p fn = get_native_ref("init",0);
-  if (fn) return fn;
-  char* code = get_code_ref("init",0); // can fail if there is no code
-  return continue_bc(code);
+  return get_native_ref(0);
 }
 
 static value* heap_end = &heap[heap_size];
@@ -771,22 +735,11 @@ void push_stack(value v) {
   *sp++ = v;
 }
 
-char* get_code_ref(char* who, unsigned n) {
-  //printf("get_code_ref(%s,%d)\n",who,n);
+func_p get_native_ref(unsigned n) {
 #ifndef NDEBUG
   check_code_ref(n);
 #endif
-  return prog[n];
-}
-
-func_p get_native_ref(char* who, unsigned n) {
-  //printf("get_native_ref(%s,%d)\n",who,n);
-#ifndef NDEBUG
-  check_code_ref(n);
-#endif
-  //func_p res = native[n];
-  //printf("get_native_ref(%s,%d) -> %p\n",who,n,res);
-  return native[n];
+  return (func_p) native[n];
 }
 
 char* get_pap_got_need(unsigned got, unsigned need) {
