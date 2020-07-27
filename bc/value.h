@@ -15,8 +15,6 @@ typedef func_p (*func_p1)(void);
 #define False 0
 #define True 1
 
-extern const bool_t config_fvs_on_stack;
-
 extern value lits[];
 extern func_p1 native[];
 
@@ -25,12 +23,8 @@ extern func_p must_use bytecode(char*);
 // specific code sequences for the nfib example
 
 extern func_p U5(void);
-
 extern func_p V(void);
 extern func_p W(void);
 extern func_p X(void);
 extern func_p Y(void);
 extern func_p Z(void);
-
-extern func_p X_fos(void);
-extern func_p Y_fos(void);

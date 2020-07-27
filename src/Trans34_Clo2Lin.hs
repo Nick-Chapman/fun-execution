@@ -3,12 +3,11 @@ module Trans34_Clo2Lin(linearize) where
 
 import Control.Monad (ap,liftM)
 import Rep4_Lin (Code(..),CodeSequence(..),ValRef(..),LitRef(..),CodeRef(..),Index(..))
-import RuntimeCallingConventions (RT)
 import qualified Builtin
 import qualified Rep3_Clo as CC
 
-linearize :: RT -> CC.Code -> Code
-linearize rt cc = runM rt (walk cc >>= CutCode)
+linearize :: CC.Code -> Code
+linearize cc = runM (walk cc >>= CutCode)
 
 walk :: CC.Code -> M CodeSequence
 walk = \case
@@ -74,13 +73,13 @@ data M a where
 
 type State = Code
 
-runM :: RT -> M CodeRef -> Code
-runM rt m = finalCode where
+runM :: M CodeRef -> Code
+runM m = finalCode where
 
   def0 = UnconditionalJump startRef
   (startRef, finalCode) = loop state0 m
 
-  state0 = Code { lits = [], defs = [def0], rt }
+  state0 = Code { lits = [], defs = [def0] }
 
   loop :: State -> M a -> (a,State)
   loop s@Code{lits=lits0,defs=defs0} = \case

@@ -8,7 +8,7 @@
 //#define TRACE
 
 static char* pap_code[];
-static char** overapp_code;
+static char* overapp_code[];
 
 #define noinline __attribute__ ((noinline))
 
@@ -88,7 +88,6 @@ inline static must_use value argument();
 
 inline static void push_stack(value v);
 inline static must_use func_p get_native_ref(unsigned n);
-
 
 
 func_p interpret_byte_code() {
@@ -207,12 +206,6 @@ func_p X() {
   return RET(stack[2]);
 }
 
-func_p X_fos() {
-  Add(stack[0],stack[1]);
-  Add(stack[2],lits[1]);
-  return RET(stack[3]);
-}
-
 func_p Y() {
   Sub(the_fp[0],lits[0]);
   { value* frame = PUSH_K(2,1);
@@ -220,17 +213,6 @@ func_p Y() {
   }
   value func = the_fp[1];
   value arg0 = stack[1];
-  stack[0] = arg0;
-  return ENTER(func,1);
-}
-
-func_p Y_fos() {
-  Sub(stack[0],lits[0]);
-  { value* frame = PUSH_K(2,1);
-    SET_FRAME(frame,0,stack[2]);
-  }
-  value func = stack[1];
-  value arg0 = stack[3];
   stack[0] = arg0;
   return ENTER(func,1);
 }
@@ -325,9 +307,9 @@ static value* this_closure;
 
 inline static must_use value* heap_alloc(int n);
 
-static must_use value* (*push_continuation)(char* code,int nFree);
-static must_use value* (*push_continuation_native)(func_p,int nFree);
-static must_use func_p (*return_to_continuation)(value v);
+static must_use value* push_continuation(char* code,int nFree);
+static must_use value* push_continuation_native(func_p,int nFree);
+static must_use func_p return_to_continuation(value v);
 
 noinline static must_use char* string_of_char(char arg);
 noinline static must_use char* string_of_int(long arg);
@@ -514,7 +496,6 @@ func_p ARITY_CHECK(int need) {
   return 0;
 }
 
-
 void push_overApp(int got, int need) {
   unsigned extra = got - need;
   char* futureCode = get_overapp_extra(extra);
@@ -576,51 +557,14 @@ void check_overapp_ref(unsigned n) {
 }
 #endif
 
-// FOS = "free variables on stack"
-// FIF = "free variables in frame"
-
-value* push_continuation_native_FOS(func_p fn,int nFree) {
-  value* k = heap_alloc(3 + nFree);
-  k[0] = kont;
-  k[1] = (value)(long)nFree;
-  k[2 + nFree] = fn;
-  kont = k;
-  return &k[2];
-}
-
-static value final_continuation_FOS[] =
-  { 0, //kont
-    0, //nFree
-    enter_byte_code,
-    (value)"h"
+static value final_continuation[] =
+  {
+   0, //kont
+   enter_byte_code,
+   (value)"h"
   };
 
-value* push_continuation_FOS(char* code,int nFree) {
-  value* k = heap_alloc(3 + nFree + 1);
-  k[0] = kont;
-  k[1] = (value)(long)nFree;
-  k[2 + nFree] = enter_byte_code;
-  k[3 + nFree] = code;
-  kont = k;
-  return &k[2];
-}
-
-func_p return_to_continuation_FOS(value v) {
-  int nFree = (long)kont[1];
-  stack[nFree] = v;
-  sp = &stack[nFree+1];
-  for (int i = 0; i < nFree; i++) {
-    value v = kont[2 + i];
-    stack[i] = v;
-  }
-  enter_p enterer = kont[2 + nFree];
-  the_fp = &kont[3+nFree];
-  kont = kont[0];
-  return enterer();
-}
-
-
-value* push_continuation_native_FIF(func_p fn,int nFree) {
+value* push_continuation_native(func_p fn,int nFree) {
   value* k = heap_alloc(2 + nFree);
   k[0] = kont;
   k[1] = fn;
@@ -628,15 +572,7 @@ value* push_continuation_native_FIF(func_p fn,int nFree) {
   return &k[2];
 }
 
-
-static value final_continuation_FIF[] =
-  {
-   0, //kont
-   enter_byte_code,
-   (value)"h"
-  };
-
-value* push_continuation_FIF(char* code,int nFree) {
+value* push_continuation(char* code,int nFree) {
   value* k = heap_alloc(3 + nFree);
   k[0] = kont;
   k[1] = enter_byte_code;
@@ -645,7 +581,7 @@ value* push_continuation_FIF(char* code,int nFree) {
   return &k[3];
 }
 
-func_p return_to_continuation_FIF(value v) {
+func_p return_to_continuation(value v) {
   the_fp = &kont[2];
   sp = stack;
   push_stack(v);
@@ -654,17 +590,7 @@ func_p return_to_continuation_FIF(value v) {
   return enterer();
 }
 
-static char* overapp_code_FOS[] =
-  {
-   "t*11*0",
-   "t*22*0*1",
-   "t*33*0*1*2",
-   "t*44*0*1*2*3",
-   "t*55*0*1*2*3*4",
-   0,
-  };
-
-static char* overapp_code_FIF[] =
+static char* overapp_code[] =
   {
    "t*01~0",
    "t*02~0~1",
@@ -674,7 +600,6 @@ static char* overapp_code_FIF[] =
    0,
   };
 
-
 #define meg (1024 * 1024)
 #define heap_size (200 * meg)
 
@@ -682,37 +607,13 @@ static value heap[heap_size];
 
 func_p init_machine() {
 
-  overapp_code =
-    config_fvs_on_stack
-    ? overapp_code_FOS
-    : overapp_code_FIF;
-
 #ifndef NDEBUG
   init_max_code_ref();
   init_max_pap_ref();
   init_max_overapp_ref();
 #endif
 
-  kont =
-    config_fvs_on_stack
-    ? final_continuation_FOS
-    : final_continuation_FIF;
-
-  push_continuation =
-    config_fvs_on_stack
-    ? &push_continuation_FOS
-    : &push_continuation_FIF;
-
-  push_continuation_native =
-    config_fvs_on_stack
-    ? &push_continuation_native_FOS
-    : &push_continuation_native_FIF;
-
-  return_to_continuation =
-    config_fvs_on_stack
-    ? &return_to_continuation_FOS
-    : &return_to_continuation_FIF;
-
+  kont = final_continuation;
   hp = &heap[0];
   sp = stack;
   return get_native_ref(0);
@@ -811,7 +712,6 @@ static char* pap_code[] =
    "n7t~08~1*0*1*2*3*4*5*6", //pap1/8
    0,
   };
-
 
 // Short term hack to allow adding pythagorian to regression.  The
 // real solution is to tag values to distinguish unboxed numbers from

@@ -79,10 +79,10 @@ ret rt cla i v = \case
   Kdone -> return (v, i)
   Kbind {fvs,code,kont} ->
     case contFreeVars rt of
-      FOS ->
+      F_O_S ->
         -- Dump free vars onto stack
         run $ Machine rt cla i code Frame {fvs = [], args = fvs++[v]} kont
-      FIF ->
+      F_I_F ->
         -- Leave free vars in frame
         run $ Machine rt cla i code Frame {fvs = fvs, args = [v]} kont
 
@@ -146,10 +146,10 @@ makeOverAppK rt overArgs kont = Kbind {fvs=overArgs, code, kont}
   where
     n = length overArgs
     code = case contFreeVars rt of
-      FOS ->
+      F_O_S ->
         -- When a continuation is entered, free vars are pushed to the stack:
         Tail (ALoc (LocArg n)) [ ALoc (LocArg i) | i <- [0 .. n-1] ]
-      FIF ->
+      F_I_F ->
         -- When a continuation is entered, free vars are found in the frame.
         Tail (ALoc (LocArg 0)) [ ALoc (LocFree i) | i <- [0 .. n-1] ]
 

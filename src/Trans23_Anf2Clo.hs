@@ -8,16 +8,15 @@ import Data.Map (Map)
 import Data.Set (Set,(\\))
 import Rep2_Anf (Var(..))
 import Rep3_Clo (Loc(..),Atom(..),Code(..))
-import RuntimeCallingConventions (RT,contFreeVars,ContFreeVars(..))
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified Rep2_Anf as Anf
 
-convert :: RT -> Anf.Code -> Code
-convert rt = runM [] . convertAnf rt
+convert :: Anf.Code -> Code
+convert = runM [] . convertAnf
 
-convertAnf :: RT -> Anf.Code -> M Code
-convertAnf rt = \case
+convertAnf :: Anf.Code -> M Code
+convertAnf = \case
   Anf.Return a -> Return <$> convertAtom a
 
   Anf.Tail func args -> do
@@ -27,45 +26,42 @@ convertAnf rt = \case
 
   Anf.LetPrim1 x prim a1 code -> do
     a1 <- convertAtom a1
-    code <- Extend [x] $ convertAnf rt code
+    code <- Extend [x] $ convertAnf code
     return $ LetPrim1 prim a1 code
 
   Anf.LetPrim2 x prim (a1,a2) code -> do
     a1 <- convertAtom a1
     a2 <- convertAtom a2
-    code <- Extend [x] $ convertAnf rt code
+    code <- Extend [x] $ convertAnf code
     return $ LetPrim2 prim (a1,a2) code
 
   Anf.LetLam y (xs,body0) code -> do
     let arity = length xs
     let fvs = freeVarList (xs,body0)
-    let body = runM fvs (Extend xs $ convertAnf rt body0)
+    let body = runM fvs (Extend xs $ convertAnf body0)
     freeBody <- mapM Lookup fvs
-    code <- Extend [y] $ convertAnf rt code
+    code <- Extend [y] $ convertAnf code
     return $ LetClose {freeBody,arity,body,code}
 
   Anf.LetFix f (xs,body0) code -> do
     let arity = length xs
     let fvs = freeVarList (xs,body0)
-    let body = runM fvs (Extend xs $ convertAnf rt body0)
+    let body = runM fvs (Extend xs $ convertAnf body0)
     freeBody <- Extend [f] $ mapM Lookup fvs
-    code <- Extend [f] $ convertAnf rt code
+    code <- Extend [f] $ convertAnf code
     return $ LetClose {freeBody,arity,body,code}
 
   Anf.LetCode y rhs follow0 -> do
     let fvs = freeVarList ([y],follow0)
-    let follow =
-          case contFreeVars rt of
-            FOS -> runM [] (Extend (fvs++[y]) $ convertAnf rt follow0)
-            FIF -> runM fvs (Extend [y] $ convertAnf rt follow0)
+    let follow = runM fvs (Extend [y] $ convertAnf follow0)
     freeFollow <- mapM Lookup fvs
-    rhs <- convertAnf rt rhs
+    rhs <- convertAnf rhs
     return $ LetContinue {freeFollow,rhs,follow}
 
   Anf.Branch a1 c2 c3 -> do
     a1 <- convertAtom a1
-    c2 <- convertAnf rt c2
-    c3 <- convertAnf rt c3
+    c2 <- convertAnf c2
+    c3 <- convertAnf c3
     return $ Branch a1 c2 c3
 
 convertAtom :: Anf.Atom -> M Atom

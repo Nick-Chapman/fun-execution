@@ -2,7 +2,6 @@
 -- Linearized code seqeunces
 module Rep4_Lin where
 
-import RuntimeCallingConventions (RT,fvsOnStack)
 import qualified Builtin
 
 data CodeSequence
@@ -27,16 +26,14 @@ newtype CodeRef = CodeRef Index deriving (Eq)
 data Code = Code
   { lits :: [Builtin.BV]
   , defs :: [CodeSequence]
-  , rt :: RT
   }
 
 ----------------------------------------------------------------------
 
 instance Show Code where
-  show Code{lits,defs,rt} =
+  show Code{lits,defs} =
     unlines $
     [ "#include \"value.h\""
-    , "const bool_t config_fvs_on_stack = " ++ show (fvsOnStack rt) ++ ";"
     , "value lits[] = {"
     ] ++
     [ "   (value) " ++ show lit ++ "," | lit <- lits ] ++
@@ -59,8 +56,6 @@ showNative i seq = do
     "-~0$0p21*0t~11*1" -> "Y"
     "n1<*0$0j*11-*0$1p32*0~0t~01*2" -> "Z"
     "c41*0A$1R*1t*01*2" -> "V"
-    "+*0*1+*2$1r*3" -> "X_fos"
-    "-*0$0p21*2t*11*3" -> "Y_fos"
     "u5" -> "U5"
     _ -> showNativeName i
 

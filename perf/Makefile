@@ -9,9 +9,7 @@ FUN = ../fun
 
 OUT = ../_build/perf
 
-# use (faster) FIF for performance
 #FUN_COMPILE_FLAGS += -nn
-#FUN_COMPILE_FLAGS += -fos
 
 DEBUG = -g
 OPT = 3

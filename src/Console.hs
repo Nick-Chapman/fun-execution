@@ -6,7 +6,6 @@ import Control.Monad.Trans.Class (lift)
 import Parse (parse)
 import Pipeline (check,compile,execute,Opt(..))
 import Rep1_Ast (Def(..),wrapDef)
-import RuntimeCallingConventions (RT(..),ContFreeVars(..))
 import System.Environment (getArgs)
 import qualified Data.List as List
 import qualified Predefined (defs)
@@ -24,7 +23,6 @@ data Conf = Conf
   { funFile :: FilePath
   , opt :: Opt
   , cla :: CommandLineArgs
-  , rt :: RT
   , view :: Bool
   }
 
@@ -33,7 +31,6 @@ defaultConf = Conf
   { funFile = ".history"
   , opt = NbE
   , cla = CommandLineArgs { argv = \n -> show (10+n) }
-  , rt = RT { contFreeVars = FIF }
   , view = False
   }
 
@@ -92,7 +89,7 @@ repl conf n defs = do
 
 -- parse-eval-print
 pep :: Conf -> (String -> IO ()) -> String -> [Def] -> IO (Maybe [Def])
-pep Conf{opt,cla,rt,view} put line defs = do
+pep Conf{opt,cla,view} put line defs = do
   case parse line of
 
     Left err -> do
@@ -117,7 +114,7 @@ pep Conf{opt,cla,rt,view} put line defs = do
       put line
       --putStrLn $ col AN.Magenta $ "ast: " <> show exp
       let expWithContext = List.foldl (flip wrapDef) exp defs
-      compile view rt opt expWithContext >>= \case
+      compile view opt expWithContext >>= \case
         Left err -> do
           putStrLn $ col AN.Red (show err)
           return Nothing

@@ -4,7 +4,6 @@ module Batch(main) where
 import Parse (parse)
 import Pipeline (check,quietCompile,Opt(..))
 import Rep1_Ast (Def(..),wrapDef)
-import RuntimeCallingConventions (RT(..),ContFreeVars(..))
 import System.Environment (getArgs)
 import qualified Data.List as List
 import qualified Predefined (defs)
@@ -13,28 +12,22 @@ import qualified System.Console.ANSI as AN
 
 main :: IO ()
 main = do
-  let rtFos = RT { contFreeVars = FOS }
-  let rtFif = RT { contFreeVars = FIF }
   getArgs >>= \case
     -- TODO: better argument parsing!
-    ["-view","-nn","-fos",infile,outfile] -> batch True rtFos NoOpt infile outfile
-    ["-view","-fos",infile,outfile] -> batch True rtFos NbE infile outfile
-    ["-view","-nn",infile,outfile] -> batch True rtFif NoOpt infile outfile
-    ["-view",infile,outfile] -> batch True rtFif NbE infile outfile
-    ["-nn","-fos",infile,outfile] -> batch False rtFos NoOpt infile outfile
-    ["-fos",infile,outfile] -> batch False rtFos NbE infile outfile
-    ["-nn",infile,outfile] -> batch False rtFif NoOpt infile outfile
-    [infile,outfile] -> batch False rtFif NbE infile outfile
+    ["-view","-nn",infile,outfile] -> batch True NoOpt infile outfile
+    ["-view",infile,outfile] -> batch True NbE infile outfile
+    ["-nn",infile,outfile] -> batch False NoOpt infile outfile
+    [infile,outfile] -> batch False NbE infile outfile
     xs -> error $ "Batch.main: unexpected args: " ++ show xs
 
-batch :: Bool -> RT -> Opt -> FilePath -> FilePath -> IO ()
-batch view rt opt i o = do
+batch :: Bool -> Opt -> FilePath -> FilePath -> IO ()
+batch view opt i o = do
   s <- readFile i
-  lin <- compileProgLines view rt opt $ lines s
+  lin <- compileProgLines view opt $ lines s
   writeFile o (show lin)
 
-compileProgLines :: Bool -> RT -> Opt -> [String] ->  IO Lin.Code
-compileProgLines view rt opt xs = loop Predefined.defs xs
+compileProgLines :: Bool -> Opt -> [String] ->  IO Lin.Code
+compileProgLines view opt xs = loop Predefined.defs xs
   where
     loop defs = \case
       line:rest -> do
@@ -44,9 +37,9 @@ compileProgLines view rt opt xs = loop Predefined.defs xs
         case defs of
           [] -> error "found no defs"
           Def name exp : _ -> do
-            putStrLn $ "compiling (" ++ show (contFreeVars rt) ++ ") definition: " ++ show name
+            putStrLn $ "compiling definition: " ++ show name
             let expWithContext = List.foldl (flip wrapDef) exp defs
-            quietCompile view rt opt expWithContext
+            quietCompile view opt expWithContext
 
 compileLine :: [Def] -> String -> IO [Def]
 compileLine defs line = do
