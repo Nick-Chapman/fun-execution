@@ -67,7 +67,7 @@ The pythagorian example shows how we can do list-processing, despite there being
 
 ### Compiler
 
-Haskell code for the compiler is in `src/`. A good place to start is the various intermediate representations (`Rep_*.hs`). And then see how the various transformations (`Trans_*.hs) are sequenced in `Pipeline.hs`
+Haskell code for the compiler is in `src/`. A good place to start is the various intermediate representations (`Rep_*.hs`). And then see how the various transformations (`Trans_*.hs)` are sequenced in `Pipeline.hs`
 
 ### Run time
 
